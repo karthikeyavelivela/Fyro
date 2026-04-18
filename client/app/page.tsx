@@ -1,394 +1,930 @@
 'use client'
-import { motion, useInView, AnimatePresence } from 'framer-motion'
-import { useRef, useState, useEffect } from 'react'
-import Link from 'next/link'
-import { fadeUp, staggerContainer, slideInRight, springPop } from '@/lib/animations'
-import { Truck, Package, Clock, MapPin, Star, Shield, Headphones, CheckCircle, ChevronRight, Zap, Users } from 'lucide-react'
 
-function CountUp({ target, prefix = '', suffix = '' }: { target: number; prefix?: string; suffix?: string }) {
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { motion, useInView } from 'framer-motion'
+import {
+  ArrowRight,
+  Check,
+  Clock,
+  Languages,
+  MapPin,
+  MessageCircle,
+  Package,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Truck,
+  Users,
+  WalletCards,
+} from 'lucide-react'
+import { fadeUp, springCard, stagger } from '@/lib/motion'
+
+const features = [
+  {
+    icon: MapPin,
+    title: 'Real-time GPS Tracking',
+    desc: 'Pickup, route, provider movement, and ETA stay visible from request to delivery.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Return Load Matching',
+    desc: 'FYRO reduces empty return trips by matching trucks with nearby reverse demand.',
+    highlight: true,
+  },
+  {
+    icon: Clock,
+    title: 'Instant Booking',
+    desc: 'Post the movement, see nearby capacity, and request verified operators in under 60 seconds.',
+  },
+  {
+    icon: MessageCircle,
+    title: 'In-app Messaging',
+    desc: 'Coordinate pickup details without sharing personal phone numbers across the marketplace.',
+  },
+  {
+    icon: Package,
+    title: 'Hamali Booking',
+    desc: 'India-first loading and unloading workflows with team size, floor, and heavy-goods pricing.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Verified Operators',
+    desc: 'Driver, vehicle, and worker profiles are checked before they can accept jobs.',
+  },
+]
+
+const steps = [
+  ['01', 'Create account', 'Pick customer, driver, or hamali and set your service preferences.'],
+  ['02', 'Post your need', 'Add pickup, dropoff, goods, team size, schedule, and service type.'],
+  ['03', 'Get matched', 'Nearby verified providers receive the request and can accept in real time.'],
+  ['04', 'Track and pay', 'Follow live movement, chat in-app, pay digitally, and rate the job.'],
+]
+
+function CountUp({ value, suffix = '' }: { value: number; suffix?: string }) {
   const [count, setCount] = useState(0)
-  const ref = useRef(null)
+  const ref = useRef<HTMLSpanElement>(null)
   const inView = useInView(ref, { once: true })
 
   useEffect(() => {
     if (!inView) return
-    let start = 0
-    const duration = 1500
-    const step = target / (duration / 16)
-    const timer = setInterval(() => {
-      start += step
-      if (start >= target) { setCount(target); clearInterval(timer) }
-      else setCount(Math.floor(start))
-    }, 16)
-    return () => clearInterval(timer)
-  }, [inView, target])
+    let frame = 0
+    const frames = 70
+    const id = window.setInterval(() => {
+      frame += 1
+      setCount(Math.round((value * frame) / frames))
+      if (frame >= frames) window.clearInterval(id)
+    }, 18)
+    return () => window.clearInterval(id)
+  }, [inView, value])
 
-  return <span ref={ref}>{prefix}{count}{suffix}</span>
+  return <span ref={ref}>{count.toLocaleString('en-IN')}{suffix}</span>
 }
 
-const features = [
-  { icon: MapPin, title: 'Real-time Tracking', desc: 'Watch your goods move on a live map with GPS accuracy to 10 meters.' },
-  { icon: Zap, title: 'Instant Booking', desc: 'Match with a verified driver or hamali worker in under 5 minutes.' },
-  { icon: Star, title: 'Fair Pricing', desc: 'Transparent fare breakdown with no hidden charges. Ever.' },
-  { icon: Package, title: 'Hamali Services', desc: 'Book skilled loading/unloading workers by the hour.' },
-  { icon: Shield, title: 'Verified Providers', desc: 'Every driver and hamali worker is KYC verified before onboarding.' },
-  { icon: Headphones, title: '24/7 Support', desc: 'Our support team is available round the clock for any issue.' },
-]
-
-const steps = [
-  { num: '01', title: 'Book', desc: 'Choose truck or hamali, set pickup & dropoff' },
-  { num: '02', title: 'Match', desc: 'Get matched with a nearby verified provider' },
-  { num: '03', title: 'Track', desc: 'Watch live on map, chat with your provider' },
-  { num: '04', title: 'Done', desc: 'Pay digitally, rate your experience' },
-]
+function HeroWords() {
+  const words = ['Find', 'Your', 'Right', 'One']
+  return (
+    <motion.h1 className="hero-title" variants={stagger} initial="hidden" animate="show">
+      {words.map((word, index) => (
+        <motion.span
+          key={word}
+          variants={fadeUp}
+          custom={index}
+          className={word === 'Your' ? 'accent-word' : undefined}
+        >
+          {word}{index === words.length - 1 ? '' : ' '}
+        </motion.span>
+      ))}
+      <motion.span variants={fadeUp} custom={4} className="hero-subline">
+        for trucks, hamali, and urgent movement.
+      </motion.span>
+    </motion.h1>
+  )
+}
 
 export default function LandingPage() {
-  const [lang, setLang] = useState<'EN' | 'HI' | 'TE'>('EN')
-  const [phone, setPhone] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const statsRef = useRef(null)
-  const featRef = useRef(null)
+  const featureRef = useRef(null)
   const stepsRef = useRef(null)
   const rolesRef = useRef(null)
-  const statsInView = useInView(statsRef, { once: true, margin: '-80px' })
-  const featInView = useInView(featRef, { once: true, margin: '-80px' })
-  const stepsInView = useInView(stepsRef, { once: true, margin: '-80px' })
-  const rolesInView = useInView(rolesRef, { once: true, margin: '-80px' })
-
-  const heroLines = {
-    EN: ['Find Your', 'Right One', 'Instantly.'],
-    HI: ['अपना सही', 'साथी खोजें', 'तुरंत।'],
-    TE: ['మీ సరైన', 'భాగస్వామిని', 'వెంటనే కనుగొనండి।'],
-  }
-  const subtext = {
-    EN: 'Book trucks and hamali workers in minutes. Real-time tracking, fair pricing, verified providers.',
-    HI: 'मिनटों में ट्रक और हमाली बुक करें। रियल-टाइम ट्रैकिंग, उचित मूल्य, सत्यापित प्रदाता।',
-    TE: 'నిమిషాల్లో ట్రక్కులు మరియు హమాలీ వర్కర్లను బుక్ చేయండి.',
-  }
+  const featuresVisible = useInView(featureRef, { once: true, margin: '-120px' })
+  const stepsVisible = useInView(stepsRef, { once: true, margin: '-120px' })
+  const rolesVisible = useInView(rolesRef, { once: true, margin: '-120px' })
+  const [phone, setPhone] = useState('')
+  const [submitted, setSubmitted] = useState(false)
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      {/* Sticky Header */}
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 50,
-        backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-        background: 'rgba(242,239,233,0.85)',
-        borderBottom: '1px solid var(--border)',
-        padding: '0 24px', height: '64px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 8,
-            background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'Syne, sans-serif', fontWeight: 800, color: 'white', fontSize: 18
-          }}>F</div>
-          <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20 }}>FYRO</span>
-        </div>
-        <Link href="/login">
-          <motion.button
-            whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
-            style={{
-              background: 'var(--text)', color: 'white', border: 'none',
-              padding: '10px 24px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-              fontFamily: 'Outfit, sans-serif', fontWeight: 500, fontSize: 15
-            }}
-          >Login</motion.button>
+    <motion.main className="landing" variants={fadeUp} initial="hidden" animate="show">
+      <header className="nav-shell">
+        <Link href="/" className="brand" aria-label="FYRO home">
+          <span className="brand-mark">F</span>
+          <span>
+            <strong>FYRO</strong>
+            <small>FIND YOUR RIGHT ONE</small>
+          </span>
         </Link>
+        <nav aria-label="Landing page navigation">
+          <a href="#features">Features</a>
+          <a href="#roles">Roles</a>
+          <a href="#early-access">Early access</a>
+        </nav>
+        <div className="nav-actions">
+          <Link href="/login" className="ghost-link">Log in</Link>
+          <Link href="/register" className="solid-link">Get Started</Link>
+        </div>
       </header>
 
-      {/* Hero Section */}
-      <section style={{ padding: '80px 24px 64px', maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 48 }}>
-          <motion.div variants={staggerContainer} initial="hidden" animate="show">
-            {/* Live badge */}
-            <motion.div variants={fadeUp} custom={0} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--teal-light)', color: 'var(--teal)', padding: '6px 14px', borderRadius: 999, fontSize: 13, fontWeight: 500, marginBottom: 28 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--teal)', display: 'inline-block', animation: 'pulse 1.5s infinite' }} />
-              Now live in AP &amp; Telangana
-            </motion.div>
-
-            {/* Language pills */}
-            <motion.div variants={fadeUp} custom={0.5} style={{ display: 'flex', gap: 8, marginBottom: 32 }}>
-              {(['EN', 'HI', 'TE'] as const).map(l => (
-                <button key={l} onClick={() => setLang(l)} style={{
-                  padding: '6px 16px', borderRadius: 999, border: '1.5px solid',
-                  borderColor: lang === l ? 'var(--accent)' : 'var(--border-strong)',
-                  background: lang === l ? 'var(--accent-light)' : 'transparent',
-                  color: lang === l ? 'var(--accent)' : 'var(--text-muted)',
-                  fontWeight: 500, fontSize: 13, cursor: 'pointer', transition: 'all 0.2s'
-                }}>{l}</button>
-              ))}
-            </motion.div>
-
-            {/* Headline */}
-            <div style={{ marginBottom: 24 }}>
-              {heroLines[lang].map((line, i) => (
-                <motion.h1 key={`${lang}-${i}`} variants={fadeUp} custom={i + 1}
-                  style={{
-                    fontFamily: 'Syne, sans-serif', fontWeight: 800,
-                    fontSize: 'clamp(40px, 8vw, 72px)', lineHeight: 1.1,
-                    color: i === 1 ? 'var(--accent)' : 'var(--text)',
-                    marginBottom: 4
-                  }}>{line}</motion.h1>
-              ))}
-            </div>
-
-            <motion.p variants={fadeUp} custom={4} style={{ fontSize: 18, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 40, maxWidth: 500 }}>
-              {subtext[lang]}
-            </motion.p>
-
-            <motion.div variants={fadeUp} custom={5} style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Link href="/book">
-                <motion.button whileHover={{ y: -2, boxShadow: 'var(--shadow-md)' }} whileTap={{ scale: 0.97 }}
-                  style={{
-                    background: 'var(--accent)', color: 'white', border: 'none',
-                    padding: '16px 32px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                    fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 16,
-                    display: 'flex', alignItems: 'center', gap: 8
-                  }}>
-                  <Truck size={18} /> Book a Truck
-                </motion.button>
-              </Link>
-              <Link href="/register">
-                <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
-                  style={{
-                    background: 'transparent', color: 'var(--accent)',
-                    border: '1.5px solid var(--accent)',
-                    padding: '16px 32px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                    fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 16
-                  }}>
-                  Register as Driver
-                </motion.button>
-              </Link>
-            </motion.div>
-          </motion.div>
-
-          {/* Mock booking card */}
-          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
-            <div style={{
-              background: 'var(--surface)', borderRadius: 'var(--radius-lg)', padding: 24,
-              boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border)',
-              maxWidth: 380
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16 }}>Live Booking</span>
-                <span style={{ background: 'var(--accent-light)', color: 'var(--accent)', padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulse 1s infinite' }} />
-                  In Progress
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <MapPin size={16} color="var(--accent)" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 2 }}>Pickup</div>
-                    <div style={{ fontWeight: 500, fontSize: 14 }}>Ameerpet Metro, Hyderabad</div>
-                  </div>
-                </div>
-                <div style={{ width: 1, height: 16, background: 'var(--border-strong)', marginLeft: 16 }} />
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <CheckCircle size={16} color="var(--teal)" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 2 }}>Dropoff</div>
-                    <div style={{ fontWeight: 500, fontSize: 14 }}>Gachibowli IT Hub, Hyderabad</div>
-                  </div>
-                </div>
-              </div>
-              <div style={{ background: 'var(--surface-raised)', borderRadius: 'var(--radius-sm)', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Driver ETA</div>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--accent)' }}>4 min</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Fare</div>
-                  <div style={{ fontWeight: 700, fontSize: 18 }}>₹480</div>
-                </div>
-              </div>
-              {/* Shimmer placeholder for map */}
-              <div className="shimmer" style={{ height: 100, borderRadius: 'var(--radius-sm)', marginBottom: 12 }} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div className="shimmer" style={{ height: 12, borderRadius: 6, flex: 2 }} />
-                <div className="shimmer" style={{ height: 12, borderRadius: 6, flex: 1 }} />
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Stats Bar */}
-      <motion.section ref={statsRef}
-        initial={{ opacity: 0, y: 30 }} animate={statsInView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        style={{ background: 'var(--text)', padding: '40px 24px', margin: '0 0 80px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32, textAlign: 'center' }}>
-          {[
-            { value: 500, suffix: '+', label: 'Trucks Available' },
-            { value: 5, prefix: '< ', suffix: ' min', label: 'Average Match Time' },
-            { value: 12, suffix: ' cities', label: 'Cities Covered' },
-          ].map((stat, i) => (
-            <div key={i}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 5vw, 48px)', color: 'var(--accent)' }}>
-                <CountUp target={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 4 }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </motion.section>
-
-      {/* Features */}
-      <section ref={featRef} style={{ padding: '0 24px 80px', maxWidth: 1100, margin: '0 auto' }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={featInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 42px)', marginBottom: 12 }}>Why FYRO?</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 17, maxWidth: 480, margin: '0 auto' }}>Built ground-up for the Indian logistics market. Fast, fair, and reliable.</p>
-        </motion.div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          {features.map((f, i) => (
-            <motion.div key={i}
-              initial={{ opacity: 0, y: 30 }} animate={featInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: i * 0.08, duration: 0.5 }}
-              style={{
-                background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: 24,
-                border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)'
-              }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                <f.icon size={22} color="var(--accent)" />
-              </div>
-              <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, marginBottom: 8 }}>{f.title}</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section ref={stepsRef} style={{ padding: '0 24px 80px', maxWidth: 1100, margin: '0 auto' }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={stepsInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 42px)', marginBottom: 12 }}>How It Works</h2>
-        </motion.div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24, position: 'relative' }}>
-          {steps.map((step, i) => (
-            <motion.div key={i}
-              initial={{ opacity: 0, y: 30 }} animate={stepsInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: i * 0.12, duration: 0.5 }}
-              style={{ textAlign: 'center', padding: 24 }}>
-              <div style={{
-                width: 60, height: 60, borderRadius: '50%',
-                background: i % 2 === 0 ? 'var(--accent)' : 'var(--text)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px',
-                fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 20, color: 'white'
-              }}>{step.num}</div>
-              <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, marginBottom: 8 }}>{step.title}</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.5 }}>{step.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Role Cards */}
-      <section ref={rolesRef} style={{ padding: '0 24px 80px', maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          <motion.div initial={{ opacity: 0, x: -40 }} animate={rolesInView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.6 }}>
-            <Link href="/book" style={{ textDecoration: 'none' }}>
-              <motion.div whileHover={{ y: -4, boxShadow: 'var(--shadow-lg)' }} style={{
-                background: 'var(--text)', color: 'white', borderRadius: 'var(--radius-lg)', padding: 36,
-                cursor: 'pointer', transition: 'box-shadow 0.2s'
-              }}>
-                <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                  <Package size={26} color="white" />
-                </div>
-                <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 24, marginBottom: 10 }}>I need to<br />move goods</h3>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, lineHeight: 1.5, marginBottom: 20 }}>Book trucks and hamali workers for any move, large or small.</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontWeight: 600 }}>
-                  Book Now <ChevronRight size={16} />
-                </div>
-              </motion.div>
+      <section className="hero-section">
+        <div className="hero-copy">
+          <p className="eyebrow">Ola/Rapido for Indian logistics</p>
+          <HeroWords />
+          <motion.p variants={fadeUp} custom={5} className="hero-body">
+            Book trucks and hamali workers instantly, track live, and pay via UPI. FYRO turns empty return trips into a dispatch network for shippers, truck owners, and worker teams.
+          </motion.p>
+          <motion.div variants={fadeUp} custom={6} className="hero-actions">
+            <Link href="/book?type=transport">
+              <motion.span whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} className="cta-primary">
+                Start booking <ArrowRight size={18} />
+              </motion.span>
             </Link>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, x: 40 }} animate={rolesInView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.6, delay: 0.1 }}>
-            <Link href="/register" style={{ textDecoration: 'none' }}>
-              <motion.div whileHover={{ y: -4, boxShadow: 'var(--shadow-lg)' }} style={{
-                background: 'var(--surface)', borderRadius: 'var(--radius-lg)', padding: 36,
-                border: '1.5px solid var(--border-strong)', cursor: 'pointer', transition: 'box-shadow 0.2s'
-              }}>
-                <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                  <Truck size={26} color="var(--teal)" />
-                </div>
-                <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 24, marginBottom: 10 }}>I provide<br />transport / labor</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.5, marginBottom: 20 }}>Join as a truck driver or hamali worker. Earn on your own schedule.</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--teal)', fontWeight: 600 }}>
-                  Register Now <ChevronRight size={16} />
-                </div>
-              </motion.div>
+            <Link href="/register">
+              <motion.span whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} className="cta-secondary">
+                Become a provider
+              </motion.span>
             </Link>
           </motion.div>
         </div>
-      </section>
 
-      {/* CTA Section */}
-      <section style={{ background: 'var(--text)', padding: '64px 24px', marginBottom: 0 }}>
-        <div style={{ maxWidth: 480, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 40px)', color: 'white', marginBottom: 12 }}>Get Early Access</h2>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, marginBottom: 32, lineHeight: 1.5 }}>Enter your phone number and we'll notify you when FYRO launches in your city.</p>
-          {submitted ? (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 18 }}>
-              <CheckCircle size={24} style={{ display: 'inline', marginRight: 8 }} />
-              You're on the list!
-            </motion.div>
-          ) : (
-            <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
-              <input
-                value={phone} onChange={e => setPhone(e.target.value)}
-                placeholder="+91 98765 43210"
-                style={{
-                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: 'var(--radius-md)', padding: '16px 20px', color: 'white',
-                  fontSize: 16, outline: 'none', width: '100%'
-                }}
-              />
-              <motion.button
-                whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
-                onClick={() => { if (phone.length >= 10) setSubmitted(true) }}
-                style={{
-                  background: 'var(--accent)', color: 'white', border: 'none',
-                  padding: '16px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                  fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 16
-                }}>
-                Notify Me
-              </motion.button>
+        <motion.aside className="booking-card" variants={springCard} initial="hidden" animate="show">
+          <div className="card-top">
+            <span>Live booking</span>
+            <strong>FY-2026-1048</strong>
+          </div>
+          <div className="vehicle-row">
+            <span className="truck-icon"><Truck size={26} /></span>
+            <div>
+              <p>Tempo assigned</p>
+              <small>AP39 CD 5678 · verified operator</small>
             </div>
-          )}
-        </div>
+          </div>
+          <div className="route-list">
+            <div>
+              <span className="route-dot pickup" />
+              <p><small>Pickup</small>Auto Nagar, Vijayawada</p>
+            </div>
+            <div>
+              <span className="route-dot drop" />
+              <p><small>Dropoff</small>Benz Circle, Vijayawada</p>
+            </div>
+          </div>
+          <div className="booking-metrics">
+            <div>
+              <small>ETA</small>
+              <strong>8 min</strong>
+            </div>
+            <div>
+              <small>Fare</small>
+              <strong>₹642</strong>
+            </div>
+            <div>
+              <small>Status</small>
+              <strong>Live</strong>
+            </div>
+          </div>
+          <div className="mini-map" aria-hidden="true">
+            <span className="map-line" />
+            <span className="map-pin start" />
+            <span className="map-pin end" />
+            <span className="map-truck"><Truck size={16} /></span>
+          </div>
+        </motion.aside>
       </section>
 
-      {/* Footer */}
-      <footer style={{ background: 'var(--text)', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '32px 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 800, color: 'white', fontSize: 14 }}>F</div>
-            <span style={{ color: 'white', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16 }}>FYRO</span>
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>© {new Date().getFullYear()} FYRO Logistics. All rights reserved.</div>
-          <div style={{ display: 'flex', gap: 20 }}>
-            {['Privacy', 'Terms', 'Contact'].map(link => (
-              <Link key={link} href="#" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'none' }}>{link}</Link>
-            ))}
-          </div>
+      <section className="stats-row" aria-label="FYRO stats">
+        <div><strong><CountUp value={1200} suffix="+" /></strong><span>trucks registered</span></div>
+        <div><strong><CountUp value={58} suffix=" sec" /></strong><span>average match time</span></div>
+        <div><strong><CountUp value={9} /></strong><span>launch cities</span></div>
+      </section>
+
+      <section id="features" ref={featureRef} className="features-section">
+        <div className="section-heading">
+          <p className="eyebrow">WHY FYRO</p>
+          <h2>Logistics, finally built right.</h2>
         </div>
+        <motion.div className="feature-grid" variants={stagger} initial="hidden" animate={featuresVisible ? 'show' : 'hidden'}>
+          {features.map((feature) => (
+            <motion.article key={feature.title} variants={springCard} className={feature.highlight ? 'feature-card highlight' : 'feature-card'}>
+              <feature.icon size={24} />
+              <h3>{feature.title}</h3>
+              <p>{feature.desc}</p>
+            </motion.article>
+          ))}
+        </motion.div>
+      </section>
+
+      <section ref={stepsRef} className="steps-section">
+        <div className="section-heading">
+          <p className="eyebrow">HOW IT WORKS</p>
+          <h2>Move anything in 4 steps.</h2>
+        </div>
+        <motion.div className="step-line" variants={stagger} initial="hidden" animate={stepsVisible ? 'show' : 'hidden'}>
+          {steps.map(([num, title, desc], index) => (
+            <motion.article key={num} variants={fadeUp} custom={index * 0.15} className="step-card">
+              <strong>{num}</strong>
+              <h3>{title}</h3>
+              <p>{desc}</p>
+            </motion.article>
+          ))}
+        </motion.div>
+      </section>
+
+      <section id="roles" ref={rolesRef} className="roles-section">
+        <motion.article variants={fadeUp} initial="hidden" animate={rolesVisible ? 'show' : 'hidden'} className="role-card dark-role">
+          <span className="role-badge">Shippers / Businesses</span>
+          <h2>Move goods without calling ten operators.</h2>
+          {['Instant truck and hamali booking', 'Live tracking with ETA', 'Transparent GST fare breakdown', 'Receipts, complaints, and chat in one place'].map((item) => (
+            <p key={item}><Check size={18} />{item}</p>
+          ))}
+          <Link href="/register" className="role-cta">Start as customer</Link>
+        </motion.article>
+        <motion.article variants={fadeUp} custom={1} initial="hidden" animate={rolesVisible ? 'show' : 'hidden'} className="role-card light-role">
+          <span className="role-badge">Drivers & Hamali</span>
+          <h2>Earn from nearby demand and return loads.</h2>
+          {['Go online when available', 'Receive nearby requests in real time', 'Counter within controlled fare range', 'Track earnings and completed jobs'].map((item) => (
+            <p key={item}><Check size={18} />{item}</p>
+          ))}
+          <Link href="/register" className="role-cta">Become a provider</Link>
+        </motion.article>
+      </section>
+
+      <section id="early-access" className="early-section">
+        <div>
+          <p className="eyebrow">EARLY ACCESS</p>
+          <h2>Ready to move with FYRO?</h2>
+          <p>Join the Vijayawada rollout list for shippers, truck owners, and hamali teams.</p>
+        </div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (phone.trim().length >= 10) setSubmitted(true)
+          }}
+        >
+          <label htmlFor="early-phone">Mobile number</label>
+          <div className="phone-row">
+            <input id="early-phone" value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" placeholder="+91 98765 43210" />
+            <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} type="submit">
+              {submitted ? 'Added' : 'Get early access'}
+            </motion.button>
+          </div>
+          <div className="language-pills" aria-label="Language options">
+            <span><Languages size={15} /> English</span>
+            <span>हिंदी</span>
+            <span>తెలుగు</span>
+          </div>
+        </form>
+      </section>
+
+      <footer className="footer">
+        <div className="brand">
+          <span className="brand-mark">F</span>
+          <span>
+            <strong>FYRO</strong>
+            <small>FIND YOUR RIGHT ONE</small>
+          </span>
+        </div>
+        <nav aria-label="Footer navigation">
+          <Link href="#">Privacy</Link>
+          <Link href="#">Terms</Link>
+          <Link href="#">Support</Link>
+          <Link href="/register">Partner with us</Link>
+        </nav>
+        <p>Copyright {new Date().getFullYear()} FYRO Logistics.</p>
       </footer>
 
-      <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.3); }
+      <style jsx>{`
+        .landing {
+          min-height: 100vh;
+          background: var(--bg);
+          color: var(--text);
+          overflow-x: hidden;
+        }
+        .nav-shell {
+          position: sticky;
+          top: 0;
+          z-index: 30;
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 24px;
+          min-height: 76px;
+          padding: 12px clamp(20px, 5vw, 64px);
+          background: rgba(242, 239, 233, 0.88);
+          border-bottom: 1px solid var(--border);
+          backdrop-filter: blur(18px);
+        }
+        .brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          color: inherit;
+          text-decoration: none;
+        }
+        .brand-mark {
+          display: grid;
+          place-items: center;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--radius-sm);
+          background: var(--accent);
+          color: white;
+          font: 800 20px/1 Syne, sans-serif;
+          box-shadow: var(--shadow-sm);
+        }
+        .brand strong {
+          display: block;
+          font: 800 20px/1 Syne, sans-serif;
+          letter-spacing: -0.02em;
+        }
+        .brand small {
+          display: block;
+          margin-top: 3px;
+          color: var(--text-muted);
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+        }
+        .nav-shell nav {
+          display: flex;
+          justify-content: center;
+          gap: 28px;
+        }
+        .nav-shell a {
+          color: var(--text-muted);
+          font-weight: 500;
+          text-decoration: none;
+        }
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .ghost-link,
+        .solid-link,
+        .cta-primary,
+        .cta-secondary,
+        .role-cta {
+          min-height: 48px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          border-radius: 999px;
+          padding: 0 22px;
+          font-weight: 600;
+          text-decoration: none;
+        }
+        .solid-link,
+        .cta-primary,
+        .role-cta {
+          background: var(--accent);
+          color: white;
+        }
+        .cta-secondary,
+        .ghost-link {
+          border: 1px solid var(--border-strong);
+          color: var(--text);
+          background: transparent;
+        }
+        .hero-section {
+          display: grid;
+          grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.72fr);
+          gap: clamp(32px, 6vw, 80px);
+          align-items: center;
+          max-width: 1240px;
+          min-height: calc(100vh - 180px);
+          padding: clamp(52px, 8vw, 96px) clamp(20px, 5vw, 64px) 44px;
+          margin: 0 auto;
+        }
+        .eyebrow {
+          color: var(--accent);
+          font-size: var(--text-xs);
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .hero-title {
+          margin: 18px 0 24px;
+          max-width: 820px;
+          font: 800 var(--text-hero)/1 Syne, sans-serif;
+          letter-spacing: -0.04em;
+        }
+        .hero-title span {
+          display: inline-block;
+        }
+        .accent-word {
+          color: var(--accent);
+        }
+        .hero-subline {
+          display: block !important;
+          margin-top: 6px;
+        }
+        .hero-body {
+          max-width: 640px;
+          color: var(--text-muted);
+          font-size: var(--text-lg);
+        }
+        .hero-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-top: 34px;
+        }
+        .booking-card {
+          width: 100%;
+          max-width: 440px;
+          justify-self: end;
+          padding: 24px;
+          border: 1px solid var(--border-dark);
+          border-radius: var(--radius-xl);
+          background: var(--surface-dark);
+          color: var(--text-on-dark);
+          box-shadow: var(--shadow-xl);
+        }
+        .card-top,
+        .vehicle-row,
+        .booking-metrics {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+        .card-top {
+          margin-bottom: 24px;
+          color: var(--text-muted-dark);
+          font-size: var(--text-sm);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        .card-top strong {
+          color: var(--accent);
+          font-family: Syne, sans-serif;
+          letter-spacing: 0;
+        }
+        .vehicle-row {
+          justify-content: flex-start;
+          padding: 16px;
+          border-radius: var(--radius-md);
+          background: var(--surface-dark-2);
+          border: 1px solid var(--border-dark);
+        }
+        .truck-icon {
+          display: grid;
+          place-items: center;
+          width: 52px;
+          height: 52px;
+          border-radius: var(--radius-md);
+          background: var(--accent);
+        }
+        .vehicle-row p,
+        .route-list p {
+          margin: 0;
+          font-weight: 600;
+        }
+        .vehicle-row small,
+        .route-list small,
+        .booking-metrics small {
+          display: block;
+          color: var(--text-muted-dark);
+          font-size: var(--text-xs);
+          font-weight: 500;
+        }
+        .route-list {
+          display: grid;
+          gap: 18px;
+          margin: 24px 0;
+        }
+        .route-list div {
+          display: grid;
+          grid-template-columns: 18px 1fr;
+          gap: 12px;
+          align-items: start;
+        }
+        .route-dot {
+          width: 12px;
+          height: 12px;
+          margin-top: 8px;
+          border-radius: 50%;
+        }
+        .pickup {
+          background: var(--accent);
+          box-shadow: 0 0 0 8px rgba(255, 107, 43, 0.14);
+        }
+        .drop {
+          background: var(--text-on-dark);
+        }
+        .booking-metrics {
+          padding: 16px;
+          border-radius: var(--radius-md);
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .booking-metrics strong {
+          display: block;
+          margin-top: 2px;
+          font: 800 24px/1 Syne, sans-serif;
+          color: var(--accent);
+        }
+        .mini-map {
+          position: relative;
+          height: 148px;
+          margin-top: 18px;
+          overflow: hidden;
+          border-radius: var(--radius-lg);
+          background:
+            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+            #11100E;
+          background-size: 42px 42px;
+        }
+        .map-line {
+          position: absolute;
+          inset: 42px 64px 54px 52px;
+          border: 2px dashed rgba(255, 107, 43, 0.72);
+          border-left: 0;
+          border-bottom: 0;
+          border-radius: 0 40px 0 0;
+        }
+        .map-pin,
+        .map-truck {
+          position: absolute;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+        }
+        .map-pin {
+          width: 16px;
+          height: 16px;
+          background: var(--accent);
+        }
+        .map-pin.start { left: 44px; bottom: 44px; }
+        .map-pin.end { right: 54px; top: 34px; background: var(--text-on-dark); }
+        .map-truck {
+          left: 54%;
+          top: 44px;
+          width: 36px;
+          height: 36px;
+          color: white;
+          background: var(--accent);
+          animation: floatTruck 2.4s ease-in-out infinite;
+        }
+        .stats-row {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1px;
+          max-width: 1112px;
+          margin: 0 auto 0;
+          overflow: hidden;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-xl);
+          background: var(--border);
+        }
+        .stats-row div {
+          padding: 28px 24px;
+          background: rgba(255,255,255,0.45);
+        }
+        .stats-row strong {
+          display: block;
+          font: 800 var(--text-3xl)/1 Syne, sans-serif;
+          color: var(--accent);
+          font-variant-numeric: tabular-nums;
+        }
+        .stats-row span {
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+        .features-section,
+        .steps-section,
+        .roles-section,
+        .early-section,
+        .footer {
+          padding-left: clamp(20px, 5vw, 64px);
+          padding-right: clamp(20px, 5vw, 64px);
+        }
+        .features-section {
+          margin-top: 84px;
+          padding-top: 88px;
+          padding-bottom: 96px;
+          background: var(--bg-secondary);
+        }
+        .section-heading {
+          max-width: 720px;
+          margin: 0 auto 40px;
+          text-align: center;
+        }
+        .section-heading h2,
+        .early-section h2,
+        .role-card h2 {
+          margin: 8px 0 0;
+          font: 700 var(--text-3xl)/1.1 Syne, sans-serif;
+          letter-spacing: -0.03em;
+        }
+        .feature-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 18px;
+          max-width: 1112px;
+          margin: 0 auto;
+        }
+        .feature-card {
+          min-height: 230px;
+          padding: 24px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          background: var(--surface);
+          box-shadow: var(--shadow-sm);
+        }
+        .feature-card svg {
+          color: var(--accent);
+        }
+        .feature-card h3 {
+          margin: 20px 0 8px;
+          font: 600 var(--text-xl)/1.15 Syne, sans-serif;
+          letter-spacing: -0.02em;
+        }
+        .feature-card p {
+          color: var(--text-muted);
+        }
+        .feature-card.highlight {
+          grid-column: span 2;
+          background: var(--surface-dark);
+          color: var(--text-on-dark);
+        }
+        .feature-card.highlight p {
+          color: var(--text-muted-dark);
+        }
+        .steps-section {
+          max-width: 1240px;
+          margin: 0 auto;
+          padding-top: 96px;
+          padding-bottom: 96px;
+        }
+        .step-line {
+          position: relative;
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+        }
+        .step-line:before {
+          content: '';
+          position: absolute;
+          top: 31px;
+          left: 8%;
+          right: 8%;
+          height: 2px;
+          background: var(--border-strong);
+        }
+        .step-card {
+          position: relative;
+          z-index: 1;
+          padding: 0 8px;
+        }
+        .step-card strong {
+          display: grid;
+          place-items: center;
+          width: 64px;
+          height: 64px;
+          margin-bottom: 20px;
+          border-radius: 50%;
+          background: var(--accent);
+          color: white;
+          font: 800 18px/1 Syne, sans-serif;
+        }
+        .step-card h3 {
+          font: 600 var(--text-xl)/1.15 Syne, sans-serif;
+          letter-spacing: -0.02em;
+        }
+        .step-card p {
+          margin-top: 8px;
+          color: var(--text-muted);
+        }
+        .roles-section {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 20px;
+          max-width: 1240px;
+          margin: 0 auto 96px;
+        }
+        .role-card {
+          padding: clamp(28px, 5vw, 48px);
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--border);
+        }
+        .dark-role {
+          background: var(--surface-dark);
+          color: var(--text-on-dark);
+        }
+        .light-role {
+          background: var(--surface);
+        }
+        .role-badge {
+          display: inline-flex;
+          margin-bottom: 18px;
+          border-radius: 999px;
+          padding: 8px 12px;
+          background: rgba(255, 107, 43, 0.13);
+          color: var(--accent);
+          font-size: var(--text-xs);
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .role-card p {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          margin-top: 18px;
+          color: inherit;
+        }
+        .dark-role p {
+          color: var(--text-muted-dark);
+        }
+        .role-card p svg {
+          color: var(--accent);
+          flex: 0 0 auto;
+        }
+        .role-cta {
+          margin-top: 28px;
+        }
+        .early-section {
+          display: grid;
+          grid-template-columns: 0.8fr 1fr;
+          gap: 32px;
+          align-items: center;
+          padding-top: 64px;
+          padding-bottom: 64px;
+          background: var(--surface-dark);
+          color: var(--text-on-dark);
+        }
+        .early-section > div,
+        .early-section form {
+          max-width: 560px;
+        }
+        .early-section p:not(.eyebrow) {
+          color: var(--text-muted-dark);
+        }
+        .early-section label {
+          display: block;
+          margin-bottom: 8px;
+          color: var(--text-muted-dark);
+          font-size: var(--text-sm);
+          font-weight: 600;
+        }
+        .phone-row {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 10px;
+        }
+        .phone-row input {
+          min-height: 52px;
+          width: 100%;
+          border: 1px solid var(--border-dark);
+          border-radius: var(--radius-md);
+          padding: 0 16px;
+          background: rgba(255,255,255,0.06);
+          color: var(--text-on-dark);
+          font: 400 16px/1 Outfit, sans-serif;
+          outline: none;
+        }
+        .phone-row button {
+          min-height: 52px;
+          border: 0;
+          border-radius: var(--radius-md);
+          padding: 0 20px;
+          background: var(--accent);
+          color: white;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .language-pills {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 14px;
+        }
+        .language-pills span {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border: 1px solid var(--border-dark);
+          border-radius: 999px;
+          padding: 8px 12px;
+          color: var(--text-muted-dark);
+          font-weight: 600;
+        }
+        .footer {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 24px;
+          padding-top: 32px;
+          padding-bottom: 32px;
+          background: var(--surface-dark);
+          color: var(--text-on-dark);
+          border-top: 1px solid var(--border-dark);
+        }
+        .footer nav {
+          display: flex;
+          justify-content: center;
+          gap: 20px;
+        }
+        .footer a,
+        .footer p {
+          color: var(--text-muted-dark);
+          text-decoration: none;
+        }
+        @keyframes floatTruck {
+          0%, 100% { transform: translate3d(0, 0, 0); }
+          50% { transform: translate3d(10px, -5px, 0); }
+        }
+        @media (max-width: 920px) {
+          .nav-shell {
+            grid-template-columns: auto auto;
+          }
+          .nav-shell nav {
+            display: none;
+          }
+          .hero-section,
+          .early-section,
+          .roles-section {
+            grid-template-columns: 1fr;
+          }
+          .booking-card {
+            justify-self: stretch;
+            max-width: none;
+          }
+          .feature-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .step-line {
+            grid-template-columns: 1fr;
+          }
+          .step-line:before {
+            top: 0;
+            bottom: 0;
+            left: 31px;
+            right: auto;
+            width: 2px;
+            height: auto;
+          }
+          .step-card {
+            display: grid;
+            grid-template-columns: 64px 1fr;
+            column-gap: 16px;
+          }
+          .step-card strong {
+            grid-row: span 2;
+          }
+          .footer {
+            grid-template-columns: 1fr;
+          }
+          .footer nav {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+          }
+        }
+        @media (max-width: 640px) {
+          .nav-shell {
+            min-height: 68px;
+          }
+          .nav-actions .ghost-link {
+            display: none;
+          }
+          .solid-link {
+            padding: 0 16px;
+          }
+          .hero-section {
+            min-height: auto;
+            padding-top: 40px;
+          }
+          .hero-actions,
+          .phone-row,
+          .stats-row {
+            grid-template-columns: 1fr;
+          }
+          .hero-actions a,
+          .cta-primary,
+          .cta-secondary {
+            width: 100%;
+          }
+          .stats-row {
+            display: grid;
+          }
+          .feature-grid {
+            grid-template-columns: 1fr;
+          }
+          .feature-card.highlight {
+            grid-column: auto;
+          }
         }
       `}</style>
-    </div>
+    </motion.main>
   )
 }

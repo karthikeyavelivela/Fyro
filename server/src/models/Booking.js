@@ -50,6 +50,8 @@ const bookingSchema = new mongoose.Schema({
   finalFare: { type: Number, default: 0 },
   fareBreakdown: fareBreakdownSchema,
   counterOffer: { type: Number },
+  counterOfferedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  rejectedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   paymentStatus: {
     type: String,
     enum: ['pending', 'paid', 'failed', 'refunded'],

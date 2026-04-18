@@ -28,8 +28,10 @@ function signToken(user) {
 function setTokenCookie(res, token) {
   res.cookie('fyro_token', token, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: 'lax'
+    sameSite: 'strict',
+    path: '/'
   })
 }
 
@@ -47,12 +49,15 @@ function userResponse(user) {
 
 // POST /api/auth/register
 router.post('/register', authLimiter, [
-  body('name').notEmpty().withMessage('Name is required'),
-  body('email').isEmail().withMessage('Valid email is required'),
-  body('phone').notEmpty().isLength({ min: 10, max: 15 }).withMessage('Valid phone is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role').isIn(['customer', 'driver', 'hamali', 'admin']).withMessage('Invalid role'),
-  body('language').optional().isIn(['en', 'hi', 'te'])
+  body('name').notEmpty().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Valid Indian mobile number is required'),
+  body('password')
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
+    .withMessage('Password must include uppercase, lowercase, number, and special character'),
+  body('role').isIn(['customer', 'driver', 'hamali']).withMessage('Invalid role'),
+  body('language').isIn(['en', 'hi', 'te']).withMessage('Invalid language')
 ], async (req, res) => {
   try {
     const errors = validationResult(req)
@@ -63,12 +68,12 @@ router.post('/register', authLimiter, [
     const { name, email, phone, password, role, language } = req.body
 
     const existingEmail = await User.findOne({ email: email.toLowerCase() })
-    if (existingEmail) return res.status(409).json({ success: false, message: 'Email already in use' })
+    if (existingEmail) return res.status(400).json({ success: false, data: null, message: 'Email already registered' })
 
     const existingPhone = await User.findOne({ phone })
-    if (existingPhone) return res.status(409).json({ success: false, message: 'Phone already in use' })
+    if (existingPhone) return res.status(400).json({ success: false, data: null, message: 'Phone already registered' })
 
-    const passwordHash = await bcrypt.hash(password, 10)
+    const passwordHash = await bcrypt.hash(password, 12)
 
     const user = await User.create({
       name,
@@ -82,9 +87,6 @@ router.post('/register', authLimiter, [
     if (role === 'driver') {
       await Vehicle.create({
         driverId: user._id,
-        type: 'mini_truck',
-        registrationNumber: 'PENDING-' + user._id.toString().slice(-6),
-        capacityTons: 1,
         isAvailable: false,
         currentLocation: { type: 'Point', coordinates: [80.6480, 16.5062] }
       })
@@ -94,8 +96,6 @@ router.post('/register', authLimiter, [
       await HamaliProfile.create({
         workerId: user._id,
         teamSize: 1,
-        ratePerJob: 200,
-        ratePerHour: 70,
         city: 'Vijayawada',
         isAvailable: false,
         currentLocation: { type: 'Point', coordinates: [80.6480, 16.5062] }
@@ -105,7 +105,8 @@ router.post('/register', authLimiter, [
     const token = signToken(user)
     setTokenCookie(res, token)
 
-    return res.status(201).json({ success: true, user: userResponse(user) })
+    const sanitizedUser = userResponse(user)
+    return res.status(201).json({ success: true, data: { user: sanitizedUser }, user: sanitizedUser })
   } catch (err) {
     logger.error('Register error: ' + err.message)
     return res.status(500).json({ success: false, message: 'Server error' })
@@ -114,6 +115,7 @@ router.post('/register', authLimiter, [
 
 // POST /api/auth/login
 router.post('/login', authLimiter, [
+  body('identifier').notEmpty().withMessage('Email or phone is required'),
   body('password').notEmpty().withMessage('Password is required')
 ], async (req, res) => {
   try {
@@ -122,16 +124,12 @@ router.post('/login', authLimiter, [
       return res.status(400).json({ success: false, message: errors.array()[0].msg })
     }
 
-    const { email, phone, password } = req.body
-    if (!email && !phone) {
-      return res.status(400).json({ success: false, message: 'Email or phone is required' })
-    }
+    const { identifier, password } = req.body
+    const normalizedIdentifier = String(identifier).trim().toLowerCase()
 
-    const query = email
-      ? { email: email.toLowerCase() }
-      : { phone }
-
-    const user = await User.findOne(query)
+    const user = await User.findOne({
+      $or: [{ email: normalizedIdentifier }, { phone: String(identifier).trim() }]
+    })
     if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' })
 
     if (!user.isActive) return res.status(403).json({ success: false, message: 'Account deactivated' })
@@ -142,7 +140,8 @@ router.post('/login', authLimiter, [
     const token = signToken(user)
     setTokenCookie(res, token)
 
-    return res.json({ success: true, user: userResponse(user) })
+    const sanitizedUser = userResponse(user)
+    return res.json({ success: true, data: { user: sanitizedUser }, user: sanitizedUser })
   } catch (err) {
     logger.error('Login error: ' + err.message)
     return res.status(500).json({ success: false, message: 'Server error' })
@@ -151,8 +150,8 @@ router.post('/login', authLimiter, [
 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
-  res.clearCookie('fyro_token')
-  return res.json({ success: true })
+  res.clearCookie('fyro_token', { path: '/' })
+  return res.json({ success: true, message: 'Logged out' })
 })
 
 // GET /api/auth/me
@@ -160,7 +159,7 @@ router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-passwordHash')
     if (!user) return res.status(404).json({ success: false, message: 'User not found' })
-    return res.json({ success: true, user })
+    return res.json({ success: true, data: { user }, user })
   } catch (err) {
     logger.error('Me error: ' + err.message)
     return res.status(500).json({ success: false, message: 'Server error' })

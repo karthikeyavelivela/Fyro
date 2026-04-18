@@ -33,28 +33,29 @@ async function seed() {
   await connectDB()
   await dropAll()
 
-  const hash = await bcrypt.hash('Test@1234', 10)
+  const hash = await bcrypt.hash('Test@1234', 12)
+  const adminHash = await bcrypt.hash('Admin@1234', 12)
 
   // ============ USERS ============
   const usersData = [
-    { name: 'Admin User',     email: 'admin@fyro.com',    phone: '9000000000', role: 'admin' },
-    { name: 'Arjun Reddy',    email: 'customer1@fyro.com', phone: '9100000001', role: 'customer' },
-    { name: 'Priya Sharma',   email: 'customer2@fyro.com', phone: '9100000002', role: 'customer' },
+    { name: 'FYRO Admin',     email: 'admin@fyro.com',    phone: '9876543209', role: 'admin' },
+    { name: 'Arjun Reddy',    email: 'customer1@fyro.com', phone: '9876543210', role: 'customer' },
+    { name: 'Priya Sharma',   email: 'customer2@fyro.com', phone: '9876543211', role: 'customer' },
     { name: 'Mohammed Irfan', email: 'customer3@fyro.com', phone: '9100000003', role: 'customer' },
-    { name: 'Ravi Kumar',     email: 'driver1@fyro.com',  phone: '9200000001', role: 'driver' },
-    { name: 'Suresh Babu',    email: 'driver2@fyro.com',  phone: '9200000002', role: 'driver' },
-    { name: 'Venkat Rao',     email: 'driver3@fyro.com',  phone: '9200000003', role: 'driver' },
+    { name: 'Ravi Kumar',     email: 'driver1@fyro.com',  phone: '9876543212', role: 'driver' },
+    { name: 'Suresh Babu',    email: 'driver2@fyro.com',  phone: '9876543213', role: 'driver' },
+    { name: 'Venkat Rao',     email: 'driver3@fyro.com',  phone: '9876543214', role: 'driver' },
     { name: 'Kiran Kumar',    email: 'driver4@fyro.com',  phone: '9200000004', role: 'driver' },
     { name: 'Prasad Naidu',   email: 'driver5@fyro.com',  phone: '9200000005', role: 'driver' },
-    { name: 'Ramesh',         email: 'hamali1@fyro.com',  phone: '9300000001', role: 'hamali' },
-    { name: 'Mahesh Team',    email: 'hamali2@fyro.com',  phone: '9300000002', role: 'hamali' },
+    { name: 'Ramesh Kumar',   email: 'hamali1@fyro.com',  phone: '9876543215', role: 'hamali' },
+    { name: 'Mahesh Team',    email: 'hamali2@fyro.com',  phone: '9876543216', role: 'hamali' },
     { name: 'Ganesh Group',   email: 'hamali3@fyro.com',  phone: '9300000003', role: 'hamali' },
     { name: 'Rajesh',         email: 'hamali4@fyro.com',  phone: '9300000004', role: 'hamali' },
   ]
 
   const users = await User.insertMany(usersData.map(u => ({
     ...u,
-    passwordHash: hash,
+    passwordHash: u.role === 'admin' ? adminHash : hash,
     isVerified: true,
     isKYCApproved: true,
     language: 'te',

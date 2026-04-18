@@ -32,6 +32,7 @@ export default function LiveTrackingMapInner({ pickup, dropoff, driverLocation, 
   useEffect(() => {
     let L: any
     const init = async () => {
+      // @ts-ignore
       await import('leaflet/dist/leaflet.css')
       const leaflet = await import('leaflet')
       L = leaflet.default

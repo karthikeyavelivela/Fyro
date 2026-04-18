@@ -4,6 +4,7 @@ const roleGuard = require('../middleware/roleGuard')
 const HamaliProfile = require('../models/HamaliProfile')
 const Booking = require('../models/Booking')
 const haversine = require('../utils/haversine')
+const findBooking = require('../utils/findBooking')
 const logger = require('../utils/logger')
 
 const router = express.Router()
@@ -18,7 +19,11 @@ router.get('/incoming', protect, roleGuard('hamali'), async (req, res) => {
       ? profile.currentLocation.coordinates
       : [80.6480, 16.5062]
 
-    const bookings = await Booking.find({ bookingType: 'hamali', status: 'pending' })
+    const bookings = await Booking.find({
+      bookingType: 'hamali',
+      status: 'pending',
+      rejectedBy: { $ne: req.user.userId }
+    })
       .populate('customerId', 'name profilePhoto rating')
       .sort({ createdAt: -1 })
       .limit(50)
@@ -43,7 +48,7 @@ router.get('/incoming', protect, roleGuard('hamali'), async (req, res) => {
 // PUT /api/hamali/bookings/:id/accept
 router.put('/bookings/:id/accept', protect, roleGuard('hamali'), async (req, res) => {
   try {
-    const booking = await Booking.findOne({ bookingId: req.params.id })
+    const booking = await findBooking(req.params.id)
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
 
     if (booking.status !== 'pending') {
@@ -61,10 +66,12 @@ router.put('/bookings/:id/accept', protect, roleGuard('hamali'), async (req, res
 
     if (counterOffer != null) {
       const maxAllowed = booking.estimatedFare + 50
-      if (counterOffer > maxAllowed) {
-        return res.status(400).json({ success: false, message: `Counter offer cannot exceed ₹${maxAllowed}` })
+      const minAllowed = booking.estimatedFare - 50
+      if (counterOffer > maxAllowed || counterOffer < minAllowed) {
+        return res.status(400).json({ success: false, message: `Counter offer must be between ₹${minAllowed} and ₹${maxAllowed}` })
       }
       booking.counterOffer = counterOffer
+      booking.counterOfferedBy = req.user.userId
     }
 
     await booking.save()
@@ -83,7 +90,7 @@ router.put('/bookings/:id/accept', protect, roleGuard('hamali'), async (req, res
 // PUT /api/hamali/bookings/:id/reject
 router.put('/bookings/:id/reject', protect, roleGuard('hamali'), async (req, res) => {
   try {
-    const booking = await Booking.findOne({ bookingId: req.params.id })
+    const booking = await findBooking(req.params.id)
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
 
     if (booking.bookingType !== 'hamali') {
@@ -92,6 +99,9 @@ router.put('/bookings/:id/reject', protect, roleGuard('hamali'), async (req, res
 
     booking.status = 'pending'
     booking.providerId = undefined
+    if (!booking.rejectedBy.some(id => id.toString() === req.user.userId)) {
+      booking.rejectedBy.push(req.user.userId)
+    }
     await booking.save()
 
     const io = req.app.get('io')
@@ -110,7 +120,7 @@ router.put('/bookings/:id/reject', protect, roleGuard('hamali'), async (req, res
 // PUT /api/hamali/bookings/:id/start
 router.put('/bookings/:id/start', protect, roleGuard('hamali'), async (req, res) => {
   try {
-    const booking = await Booking.findOne({ bookingId: req.params.id })
+    const booking = await findBooking(req.params.id)
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
 
     if (booking.status !== 'accepted') {
@@ -138,7 +148,7 @@ router.put('/bookings/:id/start', protect, roleGuard('hamali'), async (req, res)
 // PUT /api/hamali/bookings/:id/complete
 router.put('/bookings/:id/complete', protect, roleGuard('hamali'), async (req, res) => {
   try {
-    const booking = await Booking.findOne({ bookingId: req.params.id })
+    const booking = await findBooking(req.params.id)
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
 
     if (booking.status !== 'in_progress') {

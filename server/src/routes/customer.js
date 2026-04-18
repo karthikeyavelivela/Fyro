@@ -6,6 +6,7 @@ const HamaliProfile = require('../models/HamaliProfile')
 const Booking = require('../models/Booking')
 const User = require('../models/User')
 const haversine = require('../utils/haversine')
+const findBooking = require('../utils/findBooking')
 const { calculateFare } = require('../utils/fareEngine')
 const { generateBookingId } = require('../utils/generateId')
 const logger = require('../utils/logger')
@@ -13,7 +14,7 @@ const logger = require('../utils/logger')
 const router = express.Router()
 
 // GET /api/vehicles/available
-router.get('/vehicles/available', protect, roleGuard('customer'), async (req, res) => {
+router.get('/vehicles/available', async (req, res) => {
   try {
     const { lat, lng, type, radius = 15 } = req.query
     if (!lat || !lng) return res.status(400).json({ success: false, message: 'lat and lng are required' })
@@ -24,7 +25,7 @@ router.get('/vehicles/available', protect, roleGuard('customer'), async (req, re
     const query = { isAvailable: true, isVerified: true }
     if (type) query.type = type
 
-    const vehicles = await Vehicle.find(query).populate('driverId', 'name rating profilePhoto isKYCApproved')
+    const vehicles = await Vehicle.find(query).populate('driverId', 'name rating profilePhoto isKYCApproved isActive')
 
     const results = vehicles
       .filter(v => v.currentLocation && v.currentLocation.coordinates && v.currentLocation.coordinates.length === 2)
@@ -32,7 +33,7 @@ router.get('/vehicles/available', protect, roleGuard('customer'), async (req, re
         const dist = haversine(customerCoords, v.currentLocation.coordinates)
         return { ...v.toObject(), distance: Math.round(dist * 10) / 10 }
       })
-      .filter(v => v.distance <= radiusKm)
+      .filter(v => v.distance <= radiusKm && v.driverId?.isActive !== false)
       .sort((a, b) => a.distance - b.distance)
 
     return res.json({ success: true, vehicles: results })
@@ -43,7 +44,7 @@ router.get('/vehicles/available', protect, roleGuard('customer'), async (req, re
 })
 
 // GET /api/hamali/available
-router.get('/hamali/available', protect, roleGuard('customer'), async (req, res) => {
+router.get('/hamali/available', async (req, res) => {
   try {
     const { lat, lng, radius = 8 } = req.query
     if (!lat || !lng) return res.status(400).json({ success: false, message: 'lat and lng are required' })
@@ -52,7 +53,7 @@ router.get('/hamali/available', protect, roleGuard('customer'), async (req, res)
     const radiusKm = parseFloat(radius)
 
     const profiles = await HamaliProfile.find({ isAvailable: true, isVerified: true })
-      .populate('workerId', 'name rating profilePhoto isKYCApproved')
+      .populate('workerId', 'name rating profilePhoto isKYCApproved isActive')
 
     const results = profiles
       .filter(p => p.currentLocation && p.currentLocation.coordinates && p.currentLocation.coordinates.length === 2)
@@ -60,7 +61,7 @@ router.get('/hamali/available', protect, roleGuard('customer'), async (req, res)
         const dist = haversine(customerCoords, p.currentLocation.coordinates)
         return { ...p.toObject(), distance: Math.round(dist * 10) / 10 }
       })
-      .filter(p => p.distance <= radiusKm)
+      .filter(p => p.distance <= radiusKm && p.workerId?.isActive !== false)
       .sort((a, b) => a.distance - b.distance)
 
     return res.json({ success: true, profiles: results })
@@ -110,6 +111,39 @@ router.post('/bookings', protect, roleGuard('customer'), async (req, res) => {
       return res.status(400).json({ success: false, message: e.message })
     }
 
+    const pickupCoords = [pickup.lng, pickup.lat]
+    let nearbyProviders = []
+
+    if (bookingType === 'transport') {
+      const vehicles = await Vehicle.find({ isAvailable: true, isVerified: true })
+        .populate('driverId', 'name profilePhoto rating isActive')
+
+      nearbyProviders = vehicles
+        .filter(v => v.currentLocation?.coordinates?.length === 2 && v.driverId?.isActive !== false)
+        .map(v => ({
+          providerId: v.driverId._id,
+          vehicle: v,
+          distanceKm: haversine(pickupCoords, v.currentLocation.coordinates)
+        }))
+        .filter(item => item.distanceKm <= 15)
+    } else {
+      const profiles = await HamaliProfile.find({ isAvailable: true, isVerified: true })
+        .populate('workerId', 'name profilePhoto rating isActive')
+
+      nearbyProviders = profiles
+        .filter(p => p.currentLocation?.coordinates?.length === 2 && p.workerId?.isActive !== false)
+        .map(p => ({
+          providerId: p.workerId._id,
+          profile: p,
+          distanceKm: haversine(pickupCoords, p.currentLocation.coordinates)
+        }))
+        .filter(item => item.distanceKm <= 8)
+    }
+
+    if (nearbyProviders.length === 0) {
+      return res.status(400).json({ success: false, data: null, message: 'No providers available in your area' })
+    }
+
     const bookingId = await generateBookingId()
 
     const bookingData = {
@@ -143,29 +177,19 @@ router.post('/bookings', protect, roleGuard('customer'), async (req, res) => {
 
     // Notify nearby providers via socket
     const io = req.app.get('io')
-    const pickupCoords = [pickup.lng, pickup.lat]
-
-    if (bookingType === 'transport') {
-      const vehicles = await Vehicle.find({ isAvailable: true, isVerified: true })
-        .populate('driverId', '_id')
-      vehicles.forEach(v => {
-        if (!v.currentLocation || !v.currentLocation.coordinates) return
-        const dist = haversine(pickupCoords, v.currentLocation.coordinates)
-        if (dist <= 15 && v.driverId) {
-          io.to(`user:${v.driverId._id}`).emit('booking:new', { booking, distance: Math.round(dist * 10) / 10 })
-        }
+    nearbyProviders.forEach(provider => {
+      io.to(`user:${provider.providerId}`).emit('booking:new', {
+        bookingId: booking.bookingId,
+        pickup: booking.pickup,
+        dropoff: booking.dropoff,
+        fare: booking.estimatedFare,
+        vehicleType: booking.vehicleType,
+        distanceKm: Math.round(provider.distanceKm * 10) / 10,
+        bookingType: booking.bookingType,
+        customerId: { name: req.user.name },
+        booking
       })
-    } else {
-      const profiles = await HamaliProfile.find({ isAvailable: true, isVerified: true })
-        .populate('workerId', '_id')
-      profiles.forEach(p => {
-        if (!p.currentLocation || !p.currentLocation.coordinates) return
-        const dist = haversine(pickupCoords, p.currentLocation.coordinates)
-        if (dist <= 8 && p.workerId) {
-          io.to(`user:${p.workerId._id}`).emit('booking:new', { booking, distance: Math.round(dist * 10) / 10 })
-        }
-      })
-    }
+    })
 
     return res.status(201).json({ success: true, booking })
   } catch (err) {
@@ -211,7 +235,7 @@ router.get('/bookings/my', protect, roleGuard('customer'), async (req, res) => {
 // GET /api/bookings/:id
 router.get('/bookings/:id', protect, roleGuard('customer', 'driver', 'hamali', 'admin'), async (req, res) => {
   try {
-    const booking = await Booking.findOne({ bookingId: req.params.id })
+    const booking = await findBooking(req.params.id)
       .populate('customerId', 'name phone profilePhoto rating')
       .populate('providerId', 'name phone profilePhoto rating')
       .populate('vehicleId')
@@ -237,7 +261,7 @@ router.get('/bookings/:id', protect, roleGuard('customer', 'driver', 'hamali', '
 // PUT /api/bookings/:id/cancel
 router.put('/bookings/:id/cancel', protect, roleGuard('customer'), async (req, res) => {
   try {
-    const booking = await Booking.findOne({ bookingId: req.params.id })
+    const booking = await findBooking(req.params.id)
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
 
     if (booking.customerId.toString() !== req.user.userId) {
@@ -272,7 +296,7 @@ router.post('/bookings/:id/rate', protect, roleGuard('customer'), async (req, re
       return res.status(400).json({ success: false, message: 'Rating must be between 1 and 5' })
     }
 
-    const booking = await Booking.findOne({ bookingId: req.params.id })
+    const booking = await findBooking(req.params.id)
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
 
     if (booking.customerId.toString() !== req.user.userId) {
@@ -307,7 +331,7 @@ router.post('/bookings/:id/rate', protect, roleGuard('customer'), async (req, re
 // POST /api/bookings/:id/counter-accept
 router.post('/bookings/:id/counter-accept', protect, roleGuard('customer'), async (req, res) => {
   try {
-    const booking = await Booking.findOne({ bookingId: req.params.id })
+    const booking = await findBooking(req.params.id)
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
 
     if (booking.customerId.toString() !== req.user.userId) {
