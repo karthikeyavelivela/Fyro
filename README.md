@@ -1,97 +1,96 @@
-<p align="center">
+<div align="center">
   <img src="https://i.pinimg.com/originals/f6/5d/46/f65d4681649d85bc91c86872a1775919.gif" alt="FYRO Banner" width="100%" />
-</p>
 
-<p align="center">
-  <img src="https://i.pinimg.com/originals/f6/5d/46/f65d4681649d85bc91c86872a1775919.gif" height="220" width="310" alt="FYRO Demo"/>
-</p>
+  <h1>🚀 FYRO : Find Your Right One</h1>
 
-<h1 align="center">FYRO</h1>
-<p align="center"><strong>Find Your Right One</strong></p>
+  <p>
+    <strong>A next-generation, full-stack logistics marketplace designed for real-time transport and labor coordination.</strong>
+  </p>
 
-<p align="center">
-  Full-stack logistics marketplace for real-time transport and labor coordination
-</p>
+  <p>
+    <a href="https://github.com/karthikeyavelivela/Fyro">
+      <img src="https://img.shields.io/badge/Source-GitHub-181717?style=for-the-badge&logo=github" alt="GitHub" />
+    </a>
+    <a href="#tech-stack">
+      <img src="https://img.shields.io/badge/Frontend-Next.js-000000?style=for-the-badge&logo=next.js" alt="Next.js" />
+    </a>
+    <a href="#tech-stack">
+      <img src="https://img.shields.io/badge/Backend-Express-000000?style=for-the-badge&logo=express" alt="Express.js" />
+    </a>
+    <a href="#tech-stack">
+      <img src="https://img.shields.io/badge/Database-MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
+    </a>
+    <a href="#tech-stack">
+      <img src="https://img.shields.io/badge/Realtime-Socket.IO-010101?style=for-the-badge&logo=socket.io" alt="Socket.io" />
+    </a>
+  </p>
+</div>
 
----
+<br />
 
-<p align="center">
-  <a href="https://github.com/karthikeyavelivela/Fyro">
-    <img src="https://img.shields.io/badge/Source-GitHub-181717?style=for-the-badge&logo=github" />
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/Frontend-Next.js-000000?style=for-the-badge&logo=next.js" />
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/Backend-Express-000000?style=for-the-badge&logo=express" />
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/Database-MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" />
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/Realtime-Socket.IO-010101?style=for-the-badge&logo=socket.io" />
-  </a>
-</p>
+> **FYRO** bridges the gap between customers, drivers, and hamali workers, providing a seamless, real-time coordination platform that handles the complexities of modern logistics with elegance and scale.
 
 ---
 
-## Overview
+## ✨ Features
 
-FYRO is a production-oriented logistics platform that enables seamless interaction between customers, drivers, and hamali workers. It is designed to simulate real-world logistics workflows with real-time coordination, structured APIs, and scalable architecture.
+Experience a production-ready ecosystem with tailored interfaces for all participants:
 
----
+### 👤 Customer Experience
+- 📦 **Instant Booking:** Seamlessly book transport and labor services.
+- 📍 **Live Tracking:** Real-time location and status updates for peace of mind.
+- 💬 **In-App Communication:** Direct messaging with service providers.
+- 💳 **Secure Payments:** Integrated payment simulation for frictionless transactions.
+- 🛡️ **Support:** Dedicated complaint management and resolution system.
 
-## Architecture
+### 🚚 Driver Portal
+- 🚥 **Status Control:** Toggle availability with a single tap.
+- 🎯 **Smart Dispatch:** Intelligent job acceptance and routing system.
+- 🛣️ **Active Navigation:** Integrated trip tracking and guidance.
+- 💰 **Earnings Dashboard:** Comprehensive overview of revenue and trips.
 
-**Frontend**
-- Next.js (App Router)
-- Dynamic rendering with SSR control
-- Middleware-based authentication
+### 👷 Hamali Workflow
+- 📋 **Task Management:** Clear, streamlined job handling workflow.
+- ⏰ **Flexible Shifts:** Real-time availability management.
+- 📈 **Performance Tracking:** Detailed earnings and history tracking.
 
-**Backend**
-- Express.js REST API
-- MongoDB with retry logic
-- JWT-based authentication (HTTP-only cookies)
-
-**Real-Time Layer**
-- Socket.IO for live updates
-- Booking lifecycle events
-- Chat and location tracking
-
----
-
-## Core Features
-
-### Customer
-- Book transport and labor services
-- Track jobs in real time
-- In-app communication
-- Payment simulation
-- Complaint management
-
-### Driver
-- Availability control
-- Job acceptance system
-- Active trip tracking
-- Earnings overview
-
-### Hamali
-- Job handling workflow
-- Availability management
-- Earnings tracking
-
-### Admin
-- User and booking management
-- Complaint resolution system
-- KYC and analytics dashboard
+### 👑 Admin Control Center
+- 👥 **User Management:** Comprehensive KYC verification and user oversight.
+- 🛠️ **System Health:** Deep analytics and live platform monitoring.
+- ⚖️ **Resolution Hub:** Advanced tools for handling disputes and complaints.
 
 ---
 
-## Project Structure
+## 🏗️ Architecture & Tech Stack
+
+FYRO is built on a robust, scalable foundation designed for high availability and real-time responsiveness.
+
+### Frontend
+- **Framework:** Next.js (App Router)
+- **Rendering:** Dynamic rendering with granular SSR control
+- **Security:** Middleware-based authentication routing
+
+### Backend
+- **Core:** Express.js REST API
+- **Database:** MongoDB with automated retry and resilience logic
+- **Auth:** JWT-based authentication via secure, HTTP-only cookies
+
+### Real-Time Layer
+- **Engine:** Socket.IO
+- **Capabilities:** Live booking lifecycle events, instant messaging, and granular location tracking
+
+---
+
+## 📂 Project Structure
 
 ```text
 Fyro/
-  client/
-  server/
-  package.json
-  README.md
+├── client/          # Next.js frontend application
+├── server/          # Express.js REST API & WebSocket server
+├── package.json     # Root workspace configuration
+└── README.md        # Project documentation
+```
+
+<div align="center">
+  <p>Built with ❤️ by the FYRO Team</p>
+</div>
