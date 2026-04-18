@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://res.cloudinary.com/dqwm8wgg8/image/upload/v1775229340/u4qsxq76ijd9vw6yjhwj.gif" height="220" width="310" alt="FYRO Demo"/>
+  <img src="https://i.pinimg.com/originals/f6/5d/46/f65d4681649d85bc91c86872a1775919.gif" height="220" width="310" alt="FYRO Demo"/>
 </p>
 
 <h1 align="center">FYRO</h1>
