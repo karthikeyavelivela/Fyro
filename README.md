@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://i.pinimg.com/originals/f6/5d/46/f65d4681649d85bc91c86872a1775919.gif" alt="FYRO Banner" width="100%" />
+  <img src="banner.gif" alt="FYRO Banner" width="100%" />
 
   <h1>🚀 FYRO : Find Your Right One</h1>
 
