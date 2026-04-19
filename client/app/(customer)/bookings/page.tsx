@@ -18,6 +18,10 @@ const STATUS_MAP: Record<string, string[]> = {
   Cancelled: ['cancelled'],
 }
 
+function toArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : []
+}
+
 export default function BookingsPage() {
   const router = useRouter()
   const [bookings, setBookings] = useState<any[]>([])
@@ -32,9 +36,11 @@ export default function BookingsPage() {
     try {
       const params: any = { limit: 10, page: pg }
       const statuses = STATUS_MAP[flt]
-      if (statuses.length) params.status = statuses.join(',')
+      if (statuses.length === 1) params.status = statuses[0]
       const { data } = await api.get('/api/bookings/my', { params })
-      const list = data?.bookings || data || []
+      const list = toArray<any>(
+        data?.bookings ?? data?.data?.bookings ?? data?.data ?? data
+      )
       if (pg === 1) setBookings(list)
       else setBookings(prev => [...prev, ...list])
       setHasMore(list.length === 10)
@@ -45,16 +51,16 @@ export default function BookingsPage() {
   useEffect(() => { setPage(1); fetchBookings(1, filter) }, [filter])
 
   const displayed = search
-    ? bookings.filter(b =>
+    ? toArray<any>(bookings).filter(b =>
         (b.bookingId || b._id).toLowerCase().includes(search.toLowerCase()) ||
         b.pickup?.address?.toLowerCase().includes(search.toLowerCase()) ||
         b.dropoff?.address?.toLowerCase().includes(search.toLowerCase())
       )
-    : bookings
+    : toArray<any>(bookings)
 
   return (
-    <motion.div variants={staggerContainer} initial="hidden" animate="show" style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
-      <motion.h1 variants={fadeUp} custom={0} style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 24, marginBottom: 20 }}>
+    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="page-shell compact page-stack">
+      <motion.h1 variants={fadeUp} custom={0} style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 34, marginBottom: 4 }}>
         My Trips
       </motion.h1>
 

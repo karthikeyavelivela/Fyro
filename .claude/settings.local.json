@@ -5,7 +5,12 @@
       "Bash(npx tsc *)",
       "Bash(sed -i 's|<FareBreakdown breakdown={booking.fareBreakdown} />|<FareBreakdown fare={booking.fareBreakdown || {}} bookingId={booking._id} counterOffer={booking.counterOffer} status={booking.status} />|g' '/c/Users/veliv/Desktop/Fyro/client/app/\\(driver\\)/driver/bookings/[id]/page.tsx' '/c/Users/veliv/Desktop/Fyro/client/app/\\(hamali\\)/hamali/bookings/[id]/page.tsx')",
       "Bash(sed -i 's|<StatusTimeline booking={booking} />|<StatusTimeline currentStatus={booking.status} timestamps={{ accepted: booking.acceptedAt, in_progress: booking.startedAt, completed: booking.completedAt, paid: booking.paidAt }} />|g' '/c/Users/veliv/Desktop/Fyro/client/app/\\(driver\\)/driver/bookings/[id]/page.tsx' '/c/Users/veliv/Desktop/Fyro/client/app/\\(hamali\\)/hamali/bookings/[id]/page.tsx')",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Read(//c/Users/veliv/Downloads/**)",
+      "Bash(unzip -l \"C:/Users/veliv/Downloads/Fyro.zip\")",
+      "Bash(mkdir -p \"C:/Users/veliv/Desktop/Fyro/design\")",
+      "Bash(unzip -o \"C:/Users/veliv/Downloads/Fyro.zip\")"
     ]
   }
 }

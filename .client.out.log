@@ -15,3 +15,72 @@
  ○ Compiling / ...
  ✓ Compiled / in 3.4s (1254 modules)
  GET / 200 in 3610ms
+ GET / 200 in 45ms
+ GET / 200 in 46ms
+ ✓ Compiled /middleware in 416ms (153 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 813ms (1455 modules)
+ ✓ Compiled /_not-found in 216ms (1444 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 325ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 699ms (1587 modules)
+ ○ Compiling /book ...
+ ✓ Compiled /book in 747ms (1673 modules)
+ ✓ Compiled /bookings in 315ms (1667 modules)
+ ✓ Compiled /profile in 321ms (1683 modules)
+ ✓ Compiled in 494ms (791 modules)
+ ✓ Compiled in 629ms (1643 modules)
+ ✓ Compiled in 699ms (1643 modules)
+ ✓ Compiled in 664ms (1657 modules)
+ ✓ Compiled in 534ms (1657 modules)
+ ✓ Compiled in 271ms (795 modules)
+ ✓ Compiled in 526ms (1657 modules)
+ ✓ Compiled in 210ms (761 modules)
+ ✓ Compiled in 540ms (1655 modules)
+ ✓ Compiled in 511ms (797 modules)
+ ✓ Compiled in 168ms (797 modules)
+ ✓ Compiled in 360ms (797 modules)
+ ✓ Compiled in 207ms (797 modules)
+ ✓ Compiled in 245ms (797 modules)
+ ✓ Compiled in 353ms (797 modules)
+ ✓ Compiled in 348ms (797 modules)
+ ✓ Compiled in 389ms (797 modules)
+ ✓ Compiled in 1192ms (1640 modules)
+ ✓ Compiled in 792ms (1640 modules)
+ ✓ Compiled in 462ms (1640 modules)
+ ✓ Compiled / in 342ms (855 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 572ms (1638 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1417ms (1861 modules)
+ GET / 404 in 2532ms
+ GET / 200 in 122ms
+ GET /_next/static/css/app/layout.css?v=1776516403888 404 in 34ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 50ms
+ GET /_next/static/chunks/main-app.js?v=1776516403888 404 in 58ms
+ GET /_next/static/chunks/app/page.js 404 in 50ms
+ GET /_next/static/chunks/app/layout.js 404 in 49ms
+ ✓ Compiled in 629ms (1872 modules)
+ ✓ Compiled in 478ms (1872 modules)
+ ✓ Compiled in 722ms (1872 modules)
+ GET / 200 in 120ms
+ ○ Compiling /book ...
+ ✓ Compiled /book in 1137ms (1903 modules)
+ GET /login 200 in 300ms
+ ✓ Compiled /_not-found in 467ms (1906 modules)
+ GET /_next/static/css/app/layout.css?v=1776516652532 404 in 273ms
+ GET /_next/static/chunks/main-app.js?v=1776516652532 404 in 276ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 276ms
+ GET /_next/static/chunks/app/login/page.js 404 in 273ms
+ GET /_next/static/chunks/app/layout.js 404 in 272ms
+ ✓ Compiled in 682ms (1879 modules)
+ ✓ Compiled in 617ms (1876 modules)
+ ✓ Compiled in 180ms (981 modules)
+ ✓ Compiled in 193ms (981 modules)
+ ✓ Compiled in 176ms (981 modules)
+ ✓ Compiled in 172ms (981 modules)
+ GET / 200 in 69ms
+ ✓ Compiled /book in 278ms (903 modules)
+ ✓ Compiled (936 modules)
+ GET / 500 in 1500ms
+[?25h

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -8,16 +8,20 @@ import { fadeUp } from '@/lib/animations'
 import LiveTrackingMap from '@/components/LiveTrackingMap'
 import ProviderCard from '@/components/ProviderCard'
 import Skeleton from '@/components/ui/Skeleton'
-import { Truck, Users, ChevronLeft, Plus, Minus, CheckCircle } from 'lucide-react'
+import { Truck, Package, ChevronLeft, Plus, Minus, ArrowRight, MapPin, Flag, Check } from 'lucide-react'
 
 const VEHICLE_TYPES = [
-  { key: 'mini_truck', label: 'Mini Truck', fare: 300 },
-  { key: 'tempo', label: 'Tempo', fare: 400 },
-  { key: 'truck_407', label: 'Truck 407', fare: 600 },
-  { key: 'truck_1ton', label: '1 Ton', fare: 750 },
-  { key: 'truck_2ton', label: '2 Ton', fare: 1000 },
-  { key: 'heavy', label: 'Heavy', fare: 1500 },
+  { key: 'mini_truck', label: 'Mini Truck', fare: 300, cap: '500 kg' },
+  { key: 'tempo', label: 'Tempo', fare: 400, cap: 'Up to 750 kg' },
+  { key: 'truck_407', label: 'Truck 407', fare: 600, cap: '1 ton' },
+  { key: 'truck_1ton', label: '1 Ton', fare: 750, cap: '1-2 tons' },
+  { key: 'truck_2ton', label: '2 Ton', fare: 1000, cap: '2-3 tons' },
+  { key: 'heavy', label: 'Heavy', fare: 1500, cap: '4+ tons' },
 ]
+
+function toArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : []
+}
 
 function haversine(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371
@@ -35,7 +39,6 @@ function BookPageInner() {
   const [step, setStep] = useState(typeParam ? 2 : 1)
   const [bookingType, setBookingType] = useState<'transport' | 'hamali' | null>(typeParam)
 
-  // Transport state
   const [pickup, setPickup] = useState<{ lat: number; lng: number; address: string } | null>(null)
   const [dropoff, setDropoff] = useState<{ lat: number; lng: number; address: string } | null>(null)
   const [pinMode, setPinMode] = useState<'pickup' | 'dropoff'>('pickup')
@@ -43,7 +46,6 @@ function BookPageInner() {
   const [scheduleMode, setScheduleMode] = useState<'now' | 'later'>('now')
   const [scheduleTime, setScheduleTime] = useState('')
 
-  // Hamali state
   const [workAddress, setWorkAddress] = useState('')
   const [workLocation, setWorkLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [jobType, setJobType] = useState<'loading' | 'unloading' | 'both'>('loading')
@@ -53,7 +55,6 @@ function BookPageInner() {
   const [heavyGoods, setHeavyGoods] = useState(false)
   const [teamSize, setTeamSize] = useState(2)
 
-  // Step 3
   const [providers, setProviders] = useState<any[]>([])
   const [loadingProviders, setLoadingProviders] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<any>(null)
@@ -74,10 +75,20 @@ function BookPageInner() {
     try {
       const endpoint = bookingType === 'transport' ? '/api/vehicles/available' : '/api/hamali/available'
       const params = bookingType === 'transport'
-        ? { lat: pickup?.lat, lng: pickup?.lng, vehicleType }
+        ? { lat: pickup?.lat, lng: pickup?.lng, type: vehicleType }
         : { lat: workLocation?.lat || 17.385, lng: workLocation?.lng || 78.4867 }
       const { data } = await api.get(endpoint, { params })
-      setProviders(data?.providers || data || [])
+      const list = toArray<any>(
+        data?.providers ??
+        data?.vehicles ??
+        data?.profiles ??
+        data?.data?.providers ??
+        data?.data?.vehicles ??
+        data?.data?.profiles ??
+        data?.data ??
+        data
+      )
+      setProviders(list)
     } catch { toast.error('Failed to fetch providers'); setProviders([]) }
     finally { setLoadingProviders(false) }
   }
@@ -108,308 +119,429 @@ function BookPageInner() {
     exit: { opacity: 0, x: -60 }, transition: { duration: 0.3 }
   }
 
+  const accent = bookingType === 'hamali' ? 'var(--teal)' : 'var(--orange)'
+  const accentTint = bookingType === 'hamali' ? 'var(--teal-tint)' : 'var(--orange-tint)'
+  const accentLight = bookingType === 'hamali' ? 'var(--teal-light)' : 'var(--orange-light)'
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    height: 52,
+    borderRadius: 12,
+    border: '1px solid var(--border-light)',
+    background: 'var(--bg)',
+    padding: '0 16px',
+    fontSize: 16,
+    outline: 'none',
+    color: 'var(--text)',
+    fontFamily: 'var(--font-body)',
+  }
+
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100vh' }}>
-      <AnimatePresence mode="wait">
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ maxWidth: 460, margin: '0 auto' }}>
+        <AnimatePresence mode="wait">
 
-        {/* STEP 1: Service selector */}
-        {step === 1 && (
-          <motion.div key="s1" {...slideProps} style={{ padding: '24px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
-              <button onClick={() => router.back()} style={{ background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: 8, cursor: 'pointer', display: 'flex' }}><ChevronLeft size={18} /></button>
-              <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22 }}>What do you need?</h1>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {[
-                { type: 'transport' as const, icon: Truck, title: 'Book a Truck', sub: 'Move goods across the city', color: 'var(--accent)', bg: 'linear-gradient(135deg, #FF6B2B 0%, #C94A10 100%)' },
-                { type: 'hamali' as const, icon: Users, title: 'Book Hamali', sub: 'Loading/unloading services', color: 'var(--teal)', bg: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)' },
-              ].map(opt => (
-                <motion.div key={opt.type} whileTap={{ scale: 0.98 }} whileHover={{ y: -2, boxShadow: 'var(--shadow-lg)' }}
-                  onClick={() => { setBookingType(opt.type); setStep(2) }}
-                  style={{ background: opt.bg, borderRadius: 'var(--radius-lg)', padding: '28px 24px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <opt.icon size={32} color="white" />
-                  <div>
-                    <div style={{ color: 'white', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, marginBottom: 4 }}>{opt.title}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>{opt.sub}</div>
+          {/* STEP 1 */}
+          {step === 1 && (
+            <motion.div key="s1" {...slideProps} style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+                <button onClick={() => router.back()} style={{ width: 36, height: 36, borderRadius: 10, background: '#fff', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <ChevronLeft size={18} />
+                </button>
+                <h1 className="syne" style={{ fontWeight: 700, fontSize: 22 }}>What do you need?</h1>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <button
+                  onClick={() => { setBookingType('transport'); setStep(2) }}
+                  style={{
+                    width: '100%', height: 140, borderRadius: 20, background: 'var(--orange)', color: '#fff',
+                    position: 'relative', overflow: 'hidden', textAlign: 'left', padding: '22px 24px',
+                    border: 'none', cursor: 'pointer'
+                  }}
+                >
+                  <div className="syne" style={{ fontSize: 24, fontWeight: 700 }}>Book a Truck</div>
+                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Move goods across the city</div>
+                  <Truck size={96} color="rgba(255,255,255,0.25)" style={{ position: 'absolute', right: -8, bottom: -12 }} />
+                  <ArrowRight size={22} color="#fff" style={{ position: 'absolute', right: 20, bottom: 20 }} />
+                </button>
+                <button
+                  onClick={() => { setBookingType('hamali'); setStep(2) }}
+                  style={{
+                    width: '100%', height: 140, borderRadius: 20, background: 'var(--teal)', color: '#fff',
+                    position: 'relative', overflow: 'hidden', textAlign: 'left', padding: '22px 24px',
+                    border: 'none', cursor: 'pointer'
+                  }}
+                >
+                  <div className="syne" style={{ fontSize: 24, fontWeight: 700 }}>Book Hamali</div>
+                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Loading & unloading workers</div>
+                  <Package size={96} color="rgba(255,255,255,0.25)" style={{ position: 'absolute', right: -8, bottom: -12 }} />
+                  <ArrowRight size={22} color="#fff" style={{ position: 'absolute', right: 20, bottom: 20 }} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 2 TRANSPORT */}
+          {step === 2 && bookingType === 'transport' && (
+            <motion.div key="s2t" {...slideProps}>
+              {/* Map */}
+              <div style={{ height: '42vh', position: 'relative' }}>
+                <LiveTrackingMap pickup={pickup || undefined} dropoff={dropoff || undefined} />
+                <div style={{ position: 'absolute', top: 16, left: 16, right: 16, zIndex: 10, display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => router.back()}
+                    style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', border: 'none', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <div style={{ flex: 1, background: '#fff', borderRadius: 12, padding: '10px 14px', boxShadow: 'var(--shadow-md)', fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {pinMode === 'pickup' ? <MapPin size={14} color="var(--orange)" /> : <Flag size={14} color="var(--dark)" />}
+                    {pinMode === 'pickup' ? 'Set pickup' : 'Set dropoff'}
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* STEP 2: Transport details */}
-        {step === 2 && bookingType === 'transport' && (
-          <motion.div key="s2t" {...slideProps}>
-            {/* Map */}
-            <div style={{ height: '55vh', position: 'relative' }}>
-              <LiveTrackingMap pickup={pickup || undefined} dropoff={dropoff || undefined} />
-              <div style={{ position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10, display: 'flex', gap: 8 }}>
-                <button onClick={() => router.back()} style={{ background: 'white', border: 'none', borderRadius: 8, padding: 8, cursor: 'pointer', boxShadow: 'var(--shadow-sm)', display: 'flex' }}><ChevronLeft size={18} /></button>
-                <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '8px 14px', boxShadow: 'var(--shadow-sm)', fontSize: 13, fontWeight: 500, color: 'var(--text-muted)' }}>
-                  {pinMode === 'pickup' ? '📍 Tap map to set pickup' : '🏁 Tap map to set dropoff'}
                 </div>
               </div>
-            </div>
 
-            <div style={{ padding: '16px', background: 'var(--bg)' }}>
-              {/* Pin toggles */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {['pickup', 'dropoff'].map(m => (
-                  <button key={m} onClick={() => setPinMode(m as 'pickup' | 'dropoff')} style={{
-                    flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid',
-                    borderColor: pinMode === m ? 'var(--accent)' : 'var(--border-strong)',
-                    background: pinMode === m ? 'var(--accent-light)' : 'var(--surface)',
-                    color: pinMode === m ? 'var(--accent)' : 'var(--text-muted)',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer'
-                  }}>
-                    {m === 'pickup' ? `📍 ${pickup ? pickup.address.slice(0, 20) + '…' : 'Set Pickup'}` : `🏁 ${dropoff ? dropoff.address.slice(0, 20) + '…' : 'Set Dropoff'}`}
-                  </button>
-                ))}
-              </div>
+              <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', marginTop: -20, padding: '20px 20px 32px', position: 'relative', zIndex: 5 }}>
+                <div style={{ width: 36, height: 4, borderRadius: 999, background: 'rgba(0,0,0,0.12)', margin: '0 auto 16px' }} />
 
-              {/* Demo: set coords via address */}
-              <input
-                placeholder={pinMode === 'pickup' ? 'Enter pickup address' : 'Enter dropoff address'}
-                style={{ width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)', borderRadius: 10, padding: '12px 16px', fontSize: 16, marginBottom: 14, outline: 'none', fontFamily: 'Outfit, sans-serif' }}
-                onBlur={e => {
-                  const addr = e.target.value.trim()
-                  if (!addr) return
-                  const coords = { lat: 17.385 + Math.random() * 0.05, lng: 78.4867 + Math.random() * 0.05 }
-                  if (pinMode === 'pickup') setPickup({ ...coords, address: addr })
-                  else setDropoff({ ...coords, address: addr })
-                }}
-              />
+                {/* Route card */}
+                <div style={{ background: 'var(--bg)', borderRadius: 16, padding: 14, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    {(['pickup', 'dropoff'] as const).map(m => (
+                      <button
+                        key={m}
+                        onClick={() => setPinMode(m)}
+                        style={{
+                          flex: 1, padding: '8px', borderRadius: 10,
+                          border: pinMode === m ? '2px solid var(--orange)' : '1px solid var(--border-light)',
+                          background: pinMode === m ? 'var(--orange-tint)' : '#fff',
+                          color: pinMode === m ? 'var(--orange)' : 'var(--text-muted)',
+                          fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        {m === 'pickup' ? 'Pickup' : 'Dropoff'}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    placeholder={pinMode === 'pickup' ? 'Enter pickup address' : 'Enter dropoff address'}
+                    style={inputStyle}
+                    onBlur={e => {
+                      const addr = e.target.value.trim()
+                      if (!addr) return
+                      const coords = { lat: 17.385 + Math.random() * 0.05, lng: 78.4867 + Math.random() * 0.05 }
+                      if (pinMode === 'pickup') setPickup({ ...coords, address: addr })
+                      else setDropoff({ ...coords, address: addr })
+                    }}
+                  />
+                  {(pickup || dropoff) && (
+                    <div style={{ marginTop: 12, fontSize: 12 }}>
+                      {pickup && <div style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'var(--text-muted)' }}><MapPin size={12} color="var(--orange)" /> {pickup.address}</div>}
+                      {dropoff && <div style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'var(--text-muted)', marginTop: 4 }}><Flag size={12} color="var(--dark)" /> {dropoff.address}</div>}
+                    </div>
+                  )}
+                </div>
 
-              {/* Vehicle type */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>Vehicle Type</div>
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                  {VEHICLE_TYPES.map(vt => (
-                    <button key={vt.key} onClick={() => setVehicleType(vt.key)} style={{
-                      flexShrink: 0, padding: '8px 14px', borderRadius: 8, border: '1.5px solid',
-                      borderColor: vehicleType === vt.key ? 'var(--accent)' : 'var(--border-strong)',
-                      background: vehicleType === vt.key ? 'var(--accent-light)' : 'var(--surface)',
-                      color: vehicleType === vt.key ? 'var(--accent)' : 'var(--text-muted)',
-                      fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
-                    }}>
-                      {vt.label}<br />
-                      <span style={{ fontSize: 11, fontWeight: 400 }}>from ₹{vt.fare}</span>
+                {/* Vehicle type */}
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Vehicle type</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                  {VEHICLE_TYPES.map(vt => {
+                    const sel = vehicleType === vt.key
+                    return (
+                      <button
+                        key={vt.key}
+                        onClick={() => setVehicleType(vt.key)}
+                        style={{
+                          padding: 14, borderRadius: 14, textAlign: 'left',
+                          background: sel ? 'var(--orange-tint)' : '#fff',
+                          border: sel ? '2px solid var(--orange)' : '1px solid var(--border-light)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Truck size={22} color={sel ? 'var(--orange)' : 'var(--text)'} />
+                        <div className="syne" style={{ fontWeight: 700, fontSize: 14, marginTop: 6 }}>{vt.label}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{vt.cap}</div>
+                        <div className="syne" style={{ fontSize: 12, color: sel ? 'var(--orange)' : 'var(--text)', fontWeight: 700, marginTop: 2 }}>from ₹{vt.fare}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Schedule */}
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>When</div>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                  {(['now', 'later'] as const).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setScheduleMode(m)}
+                      style={{
+                        flex: 1, padding: 12, borderRadius: 12,
+                        border: scheduleMode === m ? '2px solid var(--orange)' : '1px solid var(--border-light)',
+                        background: scheduleMode === m ? 'var(--orange-tint)' : '#fff',
+                        color: scheduleMode === m ? 'var(--orange)' : 'var(--text)',
+                        fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                      }}
+                    >
+                      {m === 'now' ? 'Now' : 'Schedule'}
                     </button>
                   ))}
                 </div>
-              </div>
+                {scheduleMode === 'later' && (
+                  <input type="datetime-local" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} style={{ ...inputStyle, marginBottom: 14 }} />
+                )}
 
-              {/* Schedule */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {(['now', 'later'] as const).map(m => (
-                  <button key={m} onClick={() => setScheduleMode(m)} style={{
-                    flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid',
-                    borderColor: scheduleMode === m ? 'var(--accent)' : 'var(--border-strong)',
-                    background: scheduleMode === m ? 'var(--accent-light)' : 'var(--surface)',
-                    color: scheduleMode === m ? 'var(--accent)' : 'var(--text-muted)',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer'
-                  }}>{m === 'now' ? 'Now' : 'Schedule Later'}</button>
-                ))}
-              </div>
-              {scheduleMode === 'later' && (
-                <input type="datetime-local" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)}
-                  style={{ width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)', borderRadius: 10, padding: '12px 16px', fontSize: 16, marginBottom: 14, outline: 'none' }} />
-              )}
+                {/* Fare estimate */}
+                {pickup && dropoff && vehicleType && (
+                  <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                    style={{ background: 'var(--bg)', borderRadius: 14, padding: '14px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{distanceKm.toFixed(1)} km · {vehicleType.replace(/_/g, ' ')}</span>
+                    <span className="syne" style={{ fontWeight: 800, fontSize: 20, color: 'var(--orange)' }}>₹{estimatedFare}</span>
+                  </motion.div>
+                )}
 
-              {/* Fare estimate */}
-              {pickup && dropoff && vehicleType && (
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                  style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '14px 16px', border: '1px solid var(--border)', marginBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>{distanceKm.toFixed(1)} km · {vehicleType.replace(/_/g, ' ')}</span>
-                    <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 20, color: 'var(--accent)' }}>₹{estimatedFare}</span>
-                  </div>
-                </motion.div>
-              )}
-
-              <motion.button whileTap={{ scale: 0.97 }} onClick={goToProviders}
-                disabled={!pickup || !dropoff || !vehicleType}
-                style={{
-                  width: '100%', background: 'var(--accent)', color: 'white', border: 'none',
-                  borderRadius: 'var(--radius-md)', padding: '18px', fontSize: 16, fontWeight: 700,
-                  cursor: (!pickup || !dropoff || !vehicleType) ? 'not-allowed' : 'pointer',
-                  opacity: (!pickup || !dropoff || !vehicleType) ? 0.5 : 1,
-                  fontFamily: 'Outfit, sans-serif'
-                }}>
-                Find Providers →
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* STEP 2: Hamali details */}
-        {step === 2 && bookingType === 'hamali' && (
-          <motion.div key="s2h" {...slideProps} style={{ padding: '24px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-              <button onClick={() => setStep(1)} style={{ background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: 8, cursor: 'pointer', display: 'flex' }}><ChevronLeft size={18} /></button>
-              <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22 }}>Book Hamali</h1>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Work Location</label>
-                <input value={workAddress} onChange={e => setWorkAddress(e.target.value)} placeholder="Enter address" style={{ width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)', borderRadius: 10, padding: '14px 16px', fontSize: 16, outline: 'none', fontFamily: 'Outfit, sans-serif' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Job Type</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {(['loading', 'unloading', 'both'] as const).map(jt => (
-                    <button key={jt} onClick={() => setJobType(jt)} style={{
-                      flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid',
-                      borderColor: jobType === jt ? 'var(--teal)' : 'var(--border-strong)',
-                      background: jobType === jt ? 'var(--teal-light)' : 'var(--surface)',
-                      color: jobType === jt ? 'var(--teal)' : 'var(--text-muted)',
-                      fontSize: 13, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' as const
-                    }}>{jt}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Duration: {hours} hours</label>
-                <input type="range" min={1} max={12} value={hours} onChange={e => setHours(Number(e.target.value))}
-                  style={{ width: '100%', accentColor: 'var(--teal)' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Goods Description</label>
-                <textarea value={goodsDesc} onChange={e => setGoodsDesc(e.target.value)} rows={3} placeholder="Describe what needs to be moved..." style={{ width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)', borderRadius: 10, padding: '12px 16px', fontSize: 16, resize: 'none', outline: 'none', fontFamily: 'Outfit, sans-serif' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 8 }}>
-                  Floor Number {floor > 0 ? <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>(+₹{floor * 50} surcharge)</span> : ''}
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <button onClick={() => setFloor(Math.max(0, floor - 1))} style={{ width: 36, height: 36, borderRadius: 8, border: '1.5px solid var(--border-strong)', background: 'var(--surface-raised)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={16} /></button>
-                  <span style={{ fontSize: 16, fontWeight: 600, minWidth: 80, textAlign: 'center' }}>{floor === 0 ? 'Ground' : `Floor ${floor}`}</span>
-                  <button onClick={() => setFloor(floor + 1)} style={{ width: 36, height: 36, borderRadius: 8, border: '1.5px solid var(--border-strong)', background: 'var(--surface-raised)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={16} /></button>
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: 14, fontWeight: 500 }}>Heavy Goods (+₹200)</label>
-                <button onClick={() => setHeavyGoods(!heavyGoods)} style={{
-                  width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
-                  background: heavyGoods ? 'var(--teal)' : 'var(--border-strong)',
-                  position: 'relative', transition: 'background 0.2s'
-                }}>
-                  <motion.div animate={{ x: heavyGoods ? 26 : 2 }} style={{ width: 22, height: 22, borderRadius: '50%', background: 'white', position: 'absolute', top: 3 }} />
+                <button
+                  onClick={goToProviders}
+                  disabled={!pickup || !dropoff || !vehicleType}
+                  style={{
+                    width: '100%', height: 52, background: 'var(--orange)', color: '#fff',
+                    borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    cursor: (!pickup || !dropoff || !vehicleType) ? 'not-allowed' : 'pointer',
+                    opacity: (!pickup || !dropoff || !vehicleType) ? 0.5 : 1,
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  Find providers <ArrowRight size={16} />
                 </button>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Team Size: {teamSize}</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <button onClick={() => setTeamSize(Math.max(1, teamSize - 1))} style={{ width: 36, height: 36, borderRadius: 8, border: '1.5px solid var(--border-strong)', background: 'var(--surface-raised)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={16} /></button>
-                  <span style={{ fontSize: 18, fontWeight: 700 }}>{teamSize}</span>
-                  <button onClick={() => setTeamSize(Math.min(10, teamSize + 1))} style={{ width: 36, height: 36, borderRadius: 8, border: '1.5px solid var(--border-strong)', background: 'var(--surface-raised)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={16} /></button>
-                </div>
+            </motion.div>
+          )}
+
+          {/* STEP 2 HAMALI */}
+          {step === 2 && bookingType === 'hamali' && (
+            <motion.div key="s2h" {...slideProps} style={{ padding: '16px 20px 32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                <button onClick={() => setStep(1)} style={{ width: 36, height: 36, borderRadius: 10, background: '#fff', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <ChevronLeft size={18} />
+                </button>
+                <h1 className="syne" style={{ fontWeight: 700, fontSize: 22 }}>Book Hamali</h1>
               </div>
 
-              {/* Live fare */}
-              <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '14px 16px', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 2 }}>{hours}h · Team of {teamSize}{heavyGoods ? ' · Heavy' : ''}{floor > 0 ? ` · Floor ${floor}` : ''}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Estimated total</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Work Location</label>
+                  <input value={workAddress} onChange={e => setWorkAddress(e.target.value)} placeholder="Enter address" style={inputStyle} />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Job Type</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {(['loading', 'unloading', 'both'] as const).map(jt => (
+                      <button
+                        key={jt}
+                        onClick={() => setJobType(jt)}
+                        style={{
+                          flex: 1, padding: 12, borderRadius: 12,
+                          border: jobType === jt ? '2px solid var(--teal)' : '1px solid var(--border-light)',
+                          background: jobType === jt ? 'var(--teal-tint)' : '#fff',
+                          color: jobType === jt ? 'var(--teal)' : 'var(--text-muted)',
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                          textTransform: 'capitalize',
+                        }}
+                      >{jt}</button>
+                    ))}
                   </div>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 22, color: 'var(--teal)' }}>₹{hamaliEstimate}</span>
                 </div>
-              </div>
 
-              <motion.button whileTap={{ scale: 0.97 }} onClick={goToProviders} disabled={!workAddress}
-                style={{
-                  width: '100%', background: 'var(--teal)', color: 'white', border: 'none',
-                  borderRadius: 'var(--radius-md)', padding: '18px', fontSize: 16, fontWeight: 700,
-                  cursor: !workAddress ? 'not-allowed' : 'pointer', opacity: !workAddress ? 0.5 : 1, fontFamily: 'Outfit, sans-serif'
-                }}>
-                Find Providers →
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Duration: {hours} hours</label>
+                  <input type="range" min={1} max={12} value={hours} onChange={e => setHours(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--teal)' }} />
+                </div>
 
-        {/* STEP 3: Provider selection */}
-        {step === 3 && (
-          <motion.div key="s3" {...slideProps} style={{ padding: '24px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-              <button onClick={() => setStep(2)} style={{ background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: 8, cursor: 'pointer', display: 'flex' }}><ChevronLeft size={18} /></button>
-              <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20 }}>Choose Provider</h1>
-            </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Goods Description</label>
+                  <textarea value={goodsDesc} onChange={e => setGoodsDesc(e.target.value)} rows={3} placeholder="Describe what needs to be moved..."
+                    style={{ ...inputStyle, height: 'auto', padding: '12px 16px', resize: 'none' }} />
+                </div>
 
-            {loadingProviders ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14, marginBottom: 8 }}>Finding providers near you...</div>
-                {[1, 2, 3].map(i => <Skeleton key={i} height={140} style={{ borderRadius: 'var(--radius-md)' }} />)}
-              </div>
-            ) : providers.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 0' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>😔</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, marginBottom: 8 }}>No providers nearby</div>
-                <div style={{ color: 'var(--text-muted)', marginBottom: 20 }}>Try again in a few minutes</div>
-                <button onClick={goToProviders} style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '12px 28px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 600 }}>Retry</button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {providers.map(p => (
-                  <ProviderCard key={p._id} provider={p} selected={selectedProvider?._id === p._id}
-                    onSelect={() => setSelectedProvider(p)} bookingType={bookingType!} />
-                ))}
-              </div>
-            )}
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
+                    Floor Number {floor > 0 && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>(+₹{floor * 50})</span>}
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <button onClick={() => setFloor(Math.max(0, floor - 1))} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border-light)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={16} /></button>
+                    <span style={{ fontSize: 15, fontWeight: 600, minWidth: 80, textAlign: 'center' }}>{floor === 0 ? 'Ground' : `Floor ${floor}`}</span>
+                    <button onClick={() => setFloor(floor + 1)} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border-light)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={16} /></button>
+                  </div>
+                </div>
 
-            {selectedProvider && (
-              <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                style={{ position: 'sticky', bottom: 90, left: 16, right: 16, marginTop: 16 }}>
-                <motion.button whileTap={{ scale: 0.97 }} onClick={confirmBooking}
-                  style={{
-                    width: '100%', background: bookingType === 'hamali' ? 'var(--teal)' : 'var(--accent)',
-                    color: 'white', border: 'none', borderRadius: 'var(--radius-md)', padding: '18px',
-                    fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit, sans-serif',
-                    boxShadow: 'var(--shadow-lg)'
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
+                  <label style={{ fontSize: 14, fontWeight: 500 }}>Heavy Goods (+₹200)</label>
+                  <button onClick={() => setHeavyGoods(!heavyGoods)} style={{
+                    width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
+                    background: heavyGoods ? 'var(--teal)' : 'rgba(26,25,22,0.12)',
+                    position: 'relative', transition: 'background 0.2s'
                   }}>
-                  Confirm Booking with {selectedProvider.userId?.name?.split(' ')[0]}
-                </motion.button>
-              </motion.div>
-            )}
-          </motion.div>
-        )}
+                    <motion.div animate={{ x: heavyGoods ? 26 : 2 }} style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3 }} />
+                  </button>
+                </div>
 
-        {/* STEP 4: Confirmation */}
-        {step === 4 && booking && (
-          <motion.div key="s4" {...slideProps} style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-              <svg width="80" height="80" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="38" stroke={bookingType === 'hamali' ? 'var(--teal)' : 'var(--accent)'} strokeWidth="4" fill="none" />
-                <motion.path d="M22 40 L34 52 L58 28" stroke={bookingType === 'hamali' ? 'var(--teal)' : 'var(--accent)'} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none"
-                  initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.3, duration: 0.6 }} />
-              </svg>
-            </motion.div>
-            <motion.h1 variants={fadeUp} custom={1} initial="hidden" animate="show" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 28, marginTop: 20, marginBottom: 8 }}>
-              Booking Confirmed!
-            </motion.h1>
-            <motion.div variants={fadeUp} custom={2} initial="hidden" animate="show" style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '10px 20px', marginBottom: 16, border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Booking ID</span>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>
-                #{(booking.bookingId || booking._id).slice(-8).toUpperCase()}
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Team Size</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <button onClick={() => setTeamSize(Math.max(1, teamSize - 1))} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border-light)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={16} /></button>
+                    <span style={{ fontSize: 18, fontWeight: 700, minWidth: 32, textAlign: 'center' }}>{teamSize}</span>
+                    <button onClick={() => setTeamSize(Math.min(10, teamSize + 1))} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border-light)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={16} /></button>
+                  </div>
+                </div>
+
+                <div style={{ background: '#fff', borderRadius: 16, padding: 16, border: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{hours}h · Team of {teamSize}{heavyGoods ? ' · Heavy' : ''}{floor > 0 ? ` · Floor ${floor}` : ''}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>Estimated total</div>
+                  </div>
+                  <span className="syne" style={{ fontWeight: 800, fontSize: 22, color: 'var(--teal)' }}>₹{hamaliEstimate}</span>
+                </div>
+
+                <button
+                  onClick={goToProviders}
+                  disabled={!workAddress}
+                  style={{
+                    width: '100%', height: 52, background: 'var(--teal)', color: '#fff',
+                    borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    cursor: !workAddress ? 'not-allowed' : 'pointer',
+                    opacity: !workAddress ? 0.5 : 1,
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  Find providers <ArrowRight size={16} />
+                </button>
               </div>
             </motion.div>
-            <motion.p variants={fadeUp} custom={3} initial="hidden" animate="show" style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.5, marginBottom: 32, maxWidth: 280 }}>
-              Your provider has been notified. They will accept soon.
-            </motion.p>
-            <motion.div variants={fadeUp} custom={4} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 280 }}>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => router.push(`/bookings/${booking._id}`)}
-                style={{ background: bookingType === 'hamali' ? 'var(--teal)' : 'var(--accent)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', padding: '16px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}>
-                Track your booking
-              </motion.button>
-              <button onClick={() => router.push('/dashboard')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: '8px' }}>
-                Back to Home
-              </button>
+          )}
+
+          {/* STEP 3 */}
+          {step === 3 && (
+            <motion.div key="s3" {...slideProps} style={{ padding: '16px 20px 120px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                <button onClick={() => setStep(2)} style={{ width: 36, height: 36, borderRadius: 10, background: '#fff', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <ChevronLeft size={18} />
+                </button>
+                <h1 className="syne" style={{ fontWeight: 700, fontSize: 20 }}>Choose provider</h1>
+              </div>
+
+              {loadingProviders ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 14, marginBottom: 4 }}>Finding providers near you...</div>
+                  {[1, 2, 3].map(i => <Skeleton key={i} height={140} style={{ borderRadius: 16 }} />)}
+                </div>
+              ) : providers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 0', background: '#fff', borderRadius: 16, border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>😔</div>
+                  <div className="syne" style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>No providers nearby</div>
+                  <div style={{ color: 'var(--text-muted)', marginBottom: 20, fontSize: 13 }}>Try again in a few minutes</div>
+                  <button
+                    onClick={goToProviders}
+                    style={{ background: accent, color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 999, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}
+                  >Retry</button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {providers.map(p => (
+                    <ProviderCard
+                      key={p._id}
+                      provider={p}
+                      selected={selectedProvider?._id === p._id}
+                      onSelect={() => setSelectedProvider(p)}
+                      bookingType={bookingType!}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {selectedProvider && (
+                <motion.div
+                  initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                  style={{ position: 'fixed', bottom: 20, left: 16, right: 16, maxWidth: 428, margin: '0 auto', background: 'var(--dark)', borderRadius: 16, padding: 14, display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow-lg)', zIndex: 100 }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{selectedProvider.userId?.name || 'Provider'}</div>
+                    <div className="syne" style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Confirm booking</div>
+                  </div>
+                  <button
+                    onClick={confirmBooking}
+                    style={{
+                      background: accent, color: '#fff', border: 'none',
+                      borderRadius: 999, padding: '12px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    Confirm
+                  </button>
+                </motion.div>
+              )}
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+
+          {/* STEP 4 */}
+          {step === 4 && booking && (
+            <motion.div
+              key="s4" {...slideProps}
+              style={{ padding: '64px 24px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '90vh', textAlign: 'center' }}
+            >
+              <motion.div
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                style={{ width: 96, height: 96, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 12px 32px rgba(22,163,74,0.3)' }}
+              >
+                <Check size={52} color="#fff" strokeWidth={3} />
+              </motion.div>
+              <motion.h1
+                variants={fadeUp} custom={1} initial="hidden" animate="show"
+                className="syne"
+                style={{ fontWeight: 800, fontSize: 30, marginTop: 28, letterSpacing: '-0.02em' }}
+              >
+                Booking confirmed!
+              </motion.h1>
+              <motion.p variants={fadeUp} custom={2} initial="hidden" animate="show" style={{ color: 'var(--text-muted)', fontSize: 15, marginTop: 8 }}>
+                Your provider has been notified
+              </motion.p>
+              <motion.div
+                variants={fadeUp} custom={3} initial="hidden" animate="show"
+                className="mono syne"
+                style={{ fontSize: 14, fontWeight: 700, marginTop: 12, padding: '6px 14px', borderRadius: 999, background: 'var(--bg)' }}
+              >
+                #{(booking.bookingId || booking._id).slice(-8).toUpperCase()}
+              </motion.div>
+
+              <motion.div
+                variants={fadeUp} custom={4} initial="hidden" animate="show"
+                style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 300, marginTop: 36 }}
+              >
+                <button
+                  onClick={() => router.push(`/bookings/${booking._id}`)}
+                  style={{
+                    width: '100%', height: 52, background: accent, color: '#fff',
+                    borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  Track your booking
+                </button>
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 8 }}
+                >
+                  Back to home
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import api from '@/lib/api'
-import { getSocket } from '@/lib/socket'
+import { ensureArray } from '@/lib/ensureArray'
+import { socket } from '@/lib/socket'
 import { Send } from 'lucide-react'
 
 interface Message {
@@ -34,10 +35,9 @@ export default function ChatBox({ bookingId, currentUserId, currentUserRole }: P
 
   useEffect(() => {
     api.get(`/api/bookings/${bookingId}/messages`).then(res => {
-      setMessages(res.data?.messages || res.data || [])
+      setMessages(ensureArray<Message>(res.data?.messages ?? res.data?.data?.messages ?? res.data?.data ?? res.data))
     }).catch(() => {})
 
-    const socket = getSocket()
     socket.emit('join:booking', { bookingId })
     socket.on('message:new', (msg: Message) => {
       setMessages(prev => [...prev, msg])
@@ -55,7 +55,6 @@ export default function ChatBox({ bookingId, currentUserId, currentUserRole }: P
     const content = input.trim()
     setInput('')
     try {
-      const socket = getSocket()
       socket.emit('message:send', { bookingId, content })
       await api.post(`/api/bookings/${bookingId}/messages`, { content })
     } catch {
@@ -69,7 +68,7 @@ export default function ChatBox({ bookingId, currentUserId, currentUserRole }: P
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 320 }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15 }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>
         Chat
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>

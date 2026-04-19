@@ -1,29 +1,25 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { fadeUp, staggerContainer } from '@/lib/animations'
 import api from '@/lib/api'
-import { getSocket } from '@/lib/socket'
+import { ensureArray } from '@/lib/ensureArray'
+import { socket } from '@/lib/socket'
 import toast from 'react-hot-toast'
 import BookingRequestCard from '@/components/BookingRequestCard'
-import EmptyState from '@/components/ui/EmptyState'
+import { ArrowLeft, Package } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function DriverIncomingPage() {
   const router = useRouter()
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [userId, setUserId] = useState<string>('')
 
   useEffect(() => {
     const init = async () => {
       try {
-        const meRes = await api.get('/api/auth/me')
-        const id = meRes.data.user?.id || meRes.data.user?._id
-        setUserId(id)
-
+        await api.get('/api/auth/me')
         const res = await api.get('/api/driver/incoming')
-        setBookings(res.data.bookings || [])
+        setBookings(ensureArray<any>(res.data?.bookings ?? res.data?.data?.bookings ?? res.data?.data ?? res.data))
       } catch {
         // handled by interceptor
       } finally {
@@ -32,7 +28,6 @@ export default function DriverIncomingPage() {
     }
     init()
 
-    const socket = getSocket()
     socket.on('booking:new', (data: any) => {
       const booking = data.booking || data
       setBookings(prev => {
@@ -62,66 +57,97 @@ export default function DriverIncomingPage() {
       setBookings(prev => prev.filter(b => b._id !== bookingId))
       toast('Booking declined', { icon: '👋' })
     } catch {
-      // remove from UI anyway
       setBookings(prev => prev.filter(b => b._id !== bookingId))
     }
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <div className="p-4 max-w-lg mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between py-3 mb-4"
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 40 }}>
+      {/* Header */}
+      <div style={{
+        padding: '16px 20px',
+        background: '#fff',
+        borderBottom: '1px solid var(--divider)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
+      }}>
+        <button
+          onClick={() => router.back()}
+          style={{ background: 'transparent', border: 'none', padding: 4, cursor: 'pointer', display: 'inline-flex' }}
         >
-          <h1 className="font-syne font-800 text-2xl" style={{ color: 'var(--text)' }}>
-            Incoming Requests
-          </h1>
-          <span
-            className="text-xs px-3 py-1 rounded-full font-500"
-            style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-          >
-            {bookings.length} active
-          </span>
-        </motion.div>
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="syne" style={{ fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+          Incoming Requests
+        </h1>
+        <span style={{
+          marginLeft: 'auto',
+          minWidth: 24,
+          height: 24,
+          padding: '0 8px',
+          borderRadius: 999,
+          background: 'var(--orange)',
+          color: '#fff',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 12,
+          fontWeight: 700
+        }}>
+          {bookings.length}
+        </span>
+      </div>
 
+      <div style={{ padding: '16px 16px 40px', maxWidth: 560, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {loading ? (
-          <div className="space-y-3">
-            {[1,2,3].map(i => <div key={i} className="shimmer h-48 rounded-md" />)}
-          </div>
+          <>
+            {[1, 2, 3].map(i => <div key={i} className="shimmer" style={{ height: 200, borderRadius: 20 }} />)}
+          </>
         ) : bookings.length === 0 ? (
-          <EmptyState
-            title="You're all caught up"
-            subtitle="No incoming booking requests right now. Stay online to receive new bookings."
-          />
+          <div style={{
+            padding: 40,
+            background: '#fff',
+            borderRadius: 20,
+            textAlign: 'center',
+            border: '1px solid var(--border-light)'
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%', background: 'var(--orange-light)',
+              margin: '0 auto 14px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Package size={24} color="var(--orange)" />
+            </div>
+            <div className="syne" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
+              You&apos;re all caught up
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>
+              Stay online to receive new booking requests.
+            </p>
+          </div>
         ) : (
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="show"
-            className="space-y-3"
-          >
-            <AnimatePresence>
-              {bookings.map((booking) => (
-                <motion.div
-                  key={booking._id}
-                  layout
-                  initial={{ opacity: 0, y: -60 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -100 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                >
-                  <BookingRequestCard
-                    booking={booking}
-                    onAccept={() => handleAccept(booking._id)}
-                    onDecline={() => handleDecline(booking._id)}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+          <AnimatePresence>
+            {bookings.map((booking) => (
+              <motion.div
+                key={booking._id}
+                layout
+                initial={{ opacity: 0, y: -30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              >
+                <BookingRequestCard
+                  booking={booking}
+                  onAccept={() => handleAccept(booking._id)}
+                  onDecline={() => handleDecline(booking._id)}
+                  themeColor="var(--orange)"
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         )}
       </div>
     </div>

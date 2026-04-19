@@ -68,11 +68,11 @@ export default function FareBreakdown({ fare, bookingId, counterOffer, status, o
       <button onClick={() => setOpen(!open)} style={{
         width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '16px 18px', background: 'none', border: 'none', cursor: 'pointer',
-        fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text)'
+        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--text)'
       }}>
         <span>Fare Breakdown</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 17, color: 'var(--accent)' }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17, color: 'var(--accent)' }}>
             ₹{fare.total?.toFixed(0) || '—'}
           </span>
           {open ? <ChevronUp size={18} color="var(--text-muted)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
@@ -95,8 +95,8 @@ export default function FareBreakdown({ fare, bookingId, counterOffer, status, o
                   </div>
                 ))}
                 <div style={{ borderTop: '1.5px solid var(--border-strong)', marginTop: 4, paddingTop: 12, display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16 }}>Total</span>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, color: 'var(--accent)' }}>₹{fare.total?.toFixed(0) || '—'}</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>Total</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: 'var(--accent)' }}>₹{fare.total?.toFixed(0) || '—'}</span>
                 </div>
               </div>
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import api from '@/lib/api'
+import { ensureArray } from '@/lib/ensureArray'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -21,7 +22,7 @@ export default function AdminBookingsPage() {
       if (statusFilter !== 'all') params.set('status', statusFilter)
       if (typeFilter !== 'all') params.set('bookingType', typeFilter)
       const res = await api.get(`/api/admin/bookings?${params}`)
-      setBookings(res.data.bookings || [])
+      setBookings(ensureArray<any>(res.data?.bookings ?? res.data?.data?.bookings ?? res.data?.data ?? res.data))
       setTotalPages(res.data.pages || 1)
     } catch {}
     finally { setLoading(false) }

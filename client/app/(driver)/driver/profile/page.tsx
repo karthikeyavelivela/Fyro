@@ -26,7 +26,7 @@ export default function DriverProfilePage() {
       try {
         const [meRes, vehicleRes] = await Promise.all([
           api.get('/api/auth/me'),
-          api.get('/api/vehicles/mine')
+          api.get('/api/driver/vehicles/mine')
         ])
         setUser(meRes.data.user)
         setNameValue(meRes.data.user?.name || '')
@@ -67,7 +67,7 @@ export default function DriverProfilePage() {
       variants={staggerContainer}
       initial="hidden"
       animate="show"
-      className="min-h-screen p-4 max-w-lg mx-auto"
+      className="page-shell compact page-stack"
       style={{ background: 'var(--bg)' }}
     >
       {/* Header */}

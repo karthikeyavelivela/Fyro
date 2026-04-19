@@ -1,0 +1,21 @@
+
+> fyro-client@1.0.0 predev
+> node -e "require('fs').rmSync('.next',{ recursive: true, force: true })"
+
+
+> fyro-client@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3001
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1882ms
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.5s
+[?25h

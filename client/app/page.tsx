@@ -1,930 +1,374 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { motion, useInView } from 'framer-motion'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
-  ArrowRight,
-  Check,
-  Clock,
-  Languages,
-  MapPin,
-  MessageCircle,
-  Package,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Truck,
-  Users,
-  WalletCards,
+  ArrowRight, Check, MapPin, Zap, MessageCircle, Package,
+  ShieldCheck, RefreshCw, User, FileText, Star
 } from 'lucide-react'
-import { fadeUp, springCard, stagger } from '@/lib/motion'
 
-const features = [
-  {
-    icon: MapPin,
-    title: 'Real-time GPS Tracking',
-    desc: 'Pickup, route, provider movement, and ETA stay visible from request to delivery.',
-  },
-  {
-    icon: Sparkles,
-    title: 'Return Load Matching',
-    desc: 'FYRO reduces empty return trips by matching trucks with nearby reverse demand.',
-    highlight: true,
-  },
-  {
-    icon: Clock,
-    title: 'Instant Booking',
-    desc: 'Post the movement, see nearby capacity, and request verified operators in under 60 seconds.',
-  },
-  {
-    icon: MessageCircle,
-    title: 'In-app Messaging',
-    desc: 'Coordinate pickup details without sharing personal phone numbers across the marketplace.',
-  },
-  {
-    icon: Package,
-    title: 'Hamali Booking',
-    desc: 'India-first loading and unloading workflows with team size, floor, and heavy-goods pricing.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Verified Operators',
-    desc: 'Driver, vehicle, and worker profiles are checked before they can accept jobs.',
-  },
-]
+const LANGS = ['EN', 'हिंदी', 'తెలుగు', 'தமிழ்']
 
-const steps = [
-  ['01', 'Create account', 'Pick customer, driver, or hamali and set your service preferences.'],
-  ['02', 'Post your need', 'Add pickup, dropoff, goods, team size, schedule, and service type.'],
-  ['03', 'Get matched', 'Nearby verified providers receive the request and can accept in real time.'],
-  ['04', 'Track and pay', 'Follow live movement, chat in-app, pay digitally, and rate the job.'],
-]
-
-function CountUp({ value, suffix = '' }: { value: number; suffix?: string }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef<HTMLSpanElement>(null)
-  const inView = useInView(ref, { once: true })
-
-  useEffect(() => {
-    if (!inView) return
-    let frame = 0
-    const frames = 70
-    const id = window.setInterval(() => {
-      frame += 1
-      setCount(Math.round((value * frame) / frames))
-      if (frame >= frames) window.clearInterval(id)
-    }, 18)
-    return () => window.clearInterval(id)
-  }, [inView, value])
-
-  return <span ref={ref}>{count.toLocaleString('en-IN')}{suffix}</span>
+function LangPills({ dark = false }: { dark?: boolean }) {
+  const [active, setActive] = useState('EN')
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {LANGS.map(l => {
+        const isActive = active === l
+        return (
+          <button
+            key={l}
+            onClick={() => setActive(l)}
+            style={{
+              padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 500,
+              border: '1px solid ' + (isActive ? 'var(--orange)' : (dark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)')),
+              background: isActive ? 'var(--orange)' : (dark ? 'rgba(255,255,255,0.05)' : '#fff'),
+              color: isActive ? '#fff' : (dark ? '#F2EFE9' : 'var(--text-muted)'),
+              cursor: 'pointer'
+            }}
+          >{l}</button>
+        )
+      })}
+    </div>
+  )
 }
 
-function HeroWords() {
-  const words = ['Find', 'Your', 'Right', 'One']
+function Wordmark({ size = 22, color }: { size?: number; color?: string }) {
   return (
-    <motion.h1 className="hero-title" variants={stagger} initial="hidden" animate="show">
-      {words.map((word, index) => (
-        <motion.span
-          key={word}
-          variants={fadeUp}
-          custom={index}
-          className={word === 'Your' ? 'accent-word' : undefined}
-        >
-          {word}{index === words.length - 1 ? '' : ' '}
-        </motion.span>
-      ))}
-      <motion.span variants={fadeUp} custom={4} className="hero-subline">
-        for trucks, hamali, and urgent movement.
-      </motion.span>
-    </motion.h1>
+    <span className="syne" style={{ fontSize: size, fontWeight: 800, letterSpacing: '-0.03em', color: color || 'var(--text)' }}>
+      FYRO
+    </span>
+  )
+}
+
+function Avatar({ name, size = 40 }: { name: string; size?: number }) {
+  const initials = name.split(' ').map(s => s[0]).slice(0, 2).join('')
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: 'linear-gradient(135deg, #FF6B2B, #C94A10)',
+      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontWeight: 700, fontSize: size * 0.4, flexShrink: 0
+    }}>{initials}</div>
   )
 }
 
 export default function LandingPage() {
-  const featureRef = useRef(null)
-  const stepsRef = useRef(null)
-  const rolesRef = useRef(null)
-  const featuresVisible = useInView(featureRef, { once: true, margin: '-120px' })
-  const stepsVisible = useInView(stepsRef, { once: true, margin: '-120px' })
-  const rolesVisible = useInView(rolesRef, { once: true, margin: '-120px' })
-  const [phone, setPhone] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-
   return (
-    <motion.main className="landing" variants={fadeUp} initial="hidden" animate="show">
-      <header className="nav-shell">
-        <Link href="/" className="brand" aria-label="FYRO home">
-          <span className="brand-mark">F</span>
-          <span>
-            <strong>FYRO</strong>
-            <small>FIND YOUR RIGHT ONE</small>
-          </span>
-        </Link>
-        <nav aria-label="Landing page navigation">
-          <a href="#features">Features</a>
-          <a href="#roles">Roles</a>
-          <a href="#early-access">Early access</a>
-        </nav>
-        <div className="nav-actions">
-          <Link href="/login" className="ghost-link">Log in</Link>
-          <Link href="/register" className="solid-link">Get Started</Link>
-        </div>
-      </header>
+    <main style={{ background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-body)', overflowX: 'hidden' }}>
 
-      <section className="hero-section">
-        <div className="hero-copy">
-          <p className="eyebrow">Ola/Rapido for Indian logistics</p>
-          <HeroWords />
-          <motion.p variants={fadeUp} custom={5} className="hero-body">
-            Book trucks and hamali workers instantly, track live, and pay via UPI. FYRO turns empty return trips into a dispatch network for shippers, truck owners, and worker teams.
-          </motion.p>
-          <motion.div variants={fadeUp} custom={6} className="hero-actions">
-            <Link href="/book?type=transport">
-              <motion.span whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} className="cta-primary">
-                Start booking <ArrowRight size={18} />
-              </motion.span>
-            </Link>
-            <Link href="/register">
-              <motion.span whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} className="cta-secondary">
-                Become a provider
-              </motion.span>
-            </Link>
+      {/* Nav */}
+      <nav style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'rgba(242,239,233,0.85)', backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--divider)',
+        padding: '18px clamp(20px, 5vw, 72px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+      }}>
+        <div>
+          <Wordmark size={26} />
+          <div style={{ fontSize: 9, letterSpacing: '0.18em', color: 'var(--text-muted)', fontWeight: 600, marginTop: -2 }}>FIND YOUR RIGHT ONE</div>
+        </div>
+        <div style={{ display: 'none', gap: 36, fontSize: 14, fontWeight: 500, color: 'var(--text-muted)' }} className="nav-links">
+          <a href="#features" style={{ textDecoration: 'none' }}>Features</a>
+          <a href="#roles" style={{ textDecoration: 'none' }}>Roles</a>
+          <a href="#how" style={{ textDecoration: 'none' }}>How it works</a>
+          <a href="#cta" style={{ textDecoration: 'none' }}>Early Access</a>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <Link href="/login" style={{
+            padding: '10px 18px', fontSize: 14, fontWeight: 600,
+            borderRadius: 999, border: '1px solid var(--border-light)',
+            textDecoration: 'none', color: 'var(--text)'
+          }}>Log in</Link>
+          <Link href="/register" style={{
+            padding: '11px 20px', fontSize: 14, fontWeight: 600,
+            borderRadius: 999, background: 'var(--orange)', color: '#fff',
+            textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8
+          }}>Get started <ArrowRight size={14} /></Link>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section style={{ background: 'var(--bg)', padding: 'clamp(48px, 8vw, 72px) clamp(20px, 5vw, 72px) clamp(64px, 10vw, 96px)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          backgroundImage: 'linear-gradient(rgba(26,25,22,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(26,25,22,0.03) 1px, transparent 1px)',
+          backgroundSize: '64px 64px'
+        }} />
+        <div style={{ position: 'absolute', top: -100, left: -100, width: 500, height: 500, background: 'radial-gradient(circle, rgba(255,107,43,0.15), transparent 70%)', pointerEvents: 'none' }} />
+
+        <div className="hero-grid" style={{
+          display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 48, position: 'relative',
+          alignItems: 'center', maxWidth: 1400, margin: '0 auto'
+        }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="soft-entrance">
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'var(--orange-light)', border: '1px solid var(--orange-border)',
+              borderRadius: 999, padding: '7px 14px',
+              color: 'var(--orange-dark)', fontSize: 12, fontWeight: 600, marginBottom: 32
+            }}>
+              <span className="dot-pulse pulse-glow" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)', color: 'var(--orange)', display: 'inline-block' }} />
+              Now live in Andhra Pradesh &amp; Telangana
+            </div>
+            <h1 className="syne" style={{ fontSize: 'clamp(48px, 9vw, 88px)', lineHeight: 1, margin: 0, fontWeight: 800, letterSpacing: '-0.04em' }}>
+              Find Your<br />
+              <span style={{ color: 'var(--orange)' }}>Right</span> One<br />
+              for India.
+            </h1>
+            <p style={{ fontSize: 18, color: 'var(--text-muted)', maxWidth: 480, marginTop: 28, lineHeight: 1.6 }}>
+              Book trucks and hamali workers instantly. Track live. Pay via UPI. Built for Indian roads.
+            </p>
+            <div style={{ display: 'flex', gap: 12, marginTop: 36, flexWrap: 'wrap' }}>
+              <Link href="/register" style={{
+                height: 52, padding: '0 26px', fontSize: 15, fontWeight: 600,
+                borderRadius: 999, background: 'var(--orange)', color: '#fff',
+                display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none'
+              }}>Start booking <ArrowRight size={16} /></Link>
+              <Link href="/register" style={{
+                height: 52, padding: '0 26px', fontSize: 15, fontWeight: 600,
+                borderRadius: 999, background: 'transparent', color: 'var(--text)',
+                border: '1.5px solid var(--text)',
+                display: 'inline-flex', alignItems: 'center', textDecoration: 'none'
+              }}>Become a provider</Link>
+            </div>
+            <div style={{ marginTop: 32 }}>
+              <LangPills />
+            </div>
+          </motion.div>
+
+          {/* Dark booking card */}
+          <motion.div
+            initial={{ opacity: 0, x: 40, rotate: 0 }}
+            animate={{ opacity: 1, x: 0, rotate: -2 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="hero-card float-gentle soft-entrance soft-entrance-delay-1"
+            style={{
+              background: 'var(--dark)', color: '#fff', borderRadius: 28, padding: 28,
+              maxWidth: 420, justifySelf: 'end',
+              boxShadow: '0 30px 80px rgba(0,0,0,0.25)'
+            }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.5)' }}>LIVE BOOKING</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(22,163,74,0.2)', color: '#4ADE80', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                <span className="dot-pulse" style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ADE80', color: '#4ADE80', display: 'inline-block' }} /> In progress
+              </span>
+            </div>
+            <div className="syne mono" style={{ fontSize: 24, fontWeight: 800, marginBottom: 20 }}>FY-2026-0042</div>
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 10, letterSpacing: '0.1em', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>PICKUP</div>
+              <div style={{ fontSize: 15, fontWeight: 500, marginTop: 2 }}>Auto Nagar, Vijayawada</div>
+              <div style={{ margin: '12px 0 12px 4px', borderLeft: '1.5px dashed rgba(255,255,255,0.2)', height: 18, position: 'relative' }}>
+                <div style={{ position: 'absolute', left: -4.5, top: 6, width: 8, height: 8, borderRadius: '50%', background: 'var(--orange)' }} />
+              </div>
+              <div style={{ fontSize: 10, letterSpacing: '0.1em', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>DROPOFF</div>
+              <div style={{ fontSize: 15, fontWeight: 500, marginTop: 2 }}>Benz Circle, Vijayawada</div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0, padding: '16px 0', borderTop: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              {[['VEHICLE', 'Tempo'], ['ETA', '12 min'], ['FARE', '₹1,860']].map(([l, v], i) => (
+                <div key={l} style={{ borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.1)' : 'none', paddingLeft: i > 0 ? 16 : 0 }}>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: 600, letterSpacing: '0.1em' }}>{l}</div>
+                  <div className="syne" style={{ fontSize: 18, fontWeight: 700, color: l === 'FARE' ? 'var(--orange)' : '#fff', marginTop: 2 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: 16, gap: 12 }}>
+              <Avatar name="Ravi Kumar" size={40} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>Ravi Kumar</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Tempo · AP39CD5678</div>
+              </div>
+              <div style={{ display: 'flex', gap: 2 }}>
+                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={13} fill="#FF6B2B" color="#FF6B2B" />)}
+              </div>
+            </div>
           </motion.div>
         </div>
-
-        <motion.aside className="booking-card" variants={springCard} initial="hidden" animate="show">
-          <div className="card-top">
-            <span>Live booking</span>
-            <strong>FY-2026-1048</strong>
-          </div>
-          <div className="vehicle-row">
-            <span className="truck-icon"><Truck size={26} /></span>
-            <div>
-              <p>Tempo assigned</p>
-              <small>AP39 CD 5678 · verified operator</small>
-            </div>
-          </div>
-          <div className="route-list">
-            <div>
-              <span className="route-dot pickup" />
-              <p><small>Pickup</small>Auto Nagar, Vijayawada</p>
-            </div>
-            <div>
-              <span className="route-dot drop" />
-              <p><small>Dropoff</small>Benz Circle, Vijayawada</p>
-            </div>
-          </div>
-          <div className="booking-metrics">
-            <div>
-              <small>ETA</small>
-              <strong>8 min</strong>
-            </div>
-            <div>
-              <small>Fare</small>
-              <strong>₹642</strong>
-            </div>
-            <div>
-              <small>Status</small>
-              <strong>Live</strong>
-            </div>
-          </div>
-          <div className="mini-map" aria-hidden="true">
-            <span className="map-line" />
-            <span className="map-pin start" />
-            <span className="map-pin end" />
-            <span className="map-truck"><Truck size={16} /></span>
-          </div>
-        </motion.aside>
       </section>
 
-      <section className="stats-row" aria-label="FYRO stats">
-        <div><strong><CountUp value={1200} suffix="+" /></strong><span>trucks registered</span></div>
-        <div><strong><CountUp value={58} suffix=" sec" /></strong><span>average match time</span></div>
-        <div><strong><CountUp value={9} /></strong><span>launch cities</span></div>
-      </section>
-
-      <section id="features" ref={featureRef} className="features-section">
-        <div className="section-heading">
-          <p className="eyebrow">WHY FYRO</p>
-          <h2>Logistics, finally built right.</h2>
+      {/* Stats bar */}
+      <section style={{ background: '#fff', borderTop: '1px solid var(--divider)', borderBottom: '1px solid var(--divider)', padding: '48px clamp(20px, 5vw, 72px)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 0, maxWidth: 1400, margin: '0 auto' }}>
+          {[['2,400+', 'Trucks registered'], ['4 min', 'Average match time'], ['24', 'Cities active']].map(([n, l], i) => (
+            <div key={l} style={{ textAlign: 'center', borderLeft: i > 0 ? '1px solid var(--divider)' : 'none', padding: '0 12px' }}>
+              <div className="syne" style={{ fontSize: 52, fontWeight: 800, color: 'var(--orange)', letterSpacing: '-0.03em' }}>{n}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 4 }}>{l}</div>
+            </div>
+          ))}
         </div>
-        <motion.div className="feature-grid" variants={stagger} initial="hidden" animate={featuresVisible ? 'show' : 'hidden'}>
-          {features.map((feature) => (
-            <motion.article key={feature.title} variants={springCard} className={feature.highlight ? 'feature-card highlight' : 'feature-card'}>
-              <feature.icon size={24} />
-              <h3>{feature.title}</h3>
-              <p>{feature.desc}</p>
-            </motion.article>
-          ))}
-        </motion.div>
       </section>
 
-      <section ref={stepsRef} className="steps-section">
-        <div className="section-heading">
-          <p className="eyebrow">HOW IT WORKS</p>
-          <h2>Move anything in 4 steps.</h2>
+      {/* Features */}
+      <section id="features" style={{ padding: 'clamp(64px, 10vw, 96px) clamp(20px, 5vw, 72px)', background: 'var(--bg)' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+          <div style={{ display: 'inline-block', background: 'var(--orange-light)', color: 'var(--orange-dark)', padding: '6px 14px', borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 20 }}>Why FYRO</div>
+          <h2 className="syne" style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 700, margin: 0, letterSpacing: '-0.03em', maxWidth: 700 }}>
+            Logistics, finally<br />built right.
+          </h2>
+          <p style={{ fontSize: 17, color: 'var(--text-muted)', maxWidth: 560, marginTop: 20, lineHeight: 1.6 }}>
+            Every feature designed for the realities of Indian transport — return loads, cash handling, multi-language crews.
+          </p>
+
+          <div className="feature-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 20, marginTop: 60 }}>
+            {/* Hero feature */}
+            <div style={{ gridRow: 'span 2', background: 'var(--dark)', color: '#fff', borderRadius: 24, padding: 40, position: 'relative', overflow: 'hidden', minHeight: 400 }}>
+            <div className="float-gentle" style={{ position: 'absolute', top: -60, right: -60, width: 300, height: 300, background: 'radial-gradient(circle, rgba(255,107,43,0.25), transparent 70%)' }} />
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 32, position: 'relative' }}>
+                <RefreshCw size={28} color="#fff" strokeWidth={2} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 14, position: 'relative' }}>★ Signature feature</div>
+              <h3 className="syne" style={{ fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 700, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1, position: 'relative' }}>
+                Return Load Matching.<br />Trucks never go back empty.
+              </h3>
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginTop: 20, maxWidth: 460, position: 'relative' }}>
+                Our AI matches return trips across Vijayawada → Hyderabad → Chennai corridors. Drivers earn 40% more. Shippers pay 25% less.
+              </p>
+              <div style={{ display: 'flex', gap: 24, marginTop: 36, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
+                <div><div className="syne" style={{ fontSize: 28, fontWeight: 800, color: 'var(--orange)' }}>₹8.2L</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>saved this month</div></div>
+                <div><div className="syne" style={{ fontSize: 28, fontWeight: 800 }}>1,284</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>return trips matched</div></div>
+              </div>
+            </div>
+
+            {[
+              { Ic: MapPin, t: 'Real-time GPS tracking', d: 'Watch your goods move in real time across the map.', bg: 'var(--orange-light)', c: 'var(--orange)' },
+              { Ic: Zap, t: 'Book in 60 seconds', d: 'From need to confirmed driver, faster than a rickshaw.', bg: 'var(--orange-light)', c: 'var(--orange)' },
+              { Ic: MessageCircle, t: 'In-app messaging', d: 'Chat or call drivers in English, Hindi, or Telugu.', bg: 'var(--orange-light)', c: 'var(--orange)' },
+              { Ic: Package, t: 'Hamali workers', d: 'Book trusted loading/unloading crews on demand.', bg: 'var(--teal-light)', c: 'var(--teal)' },
+              { Ic: ShieldCheck, t: 'Verified operators', d: 'Every driver KYC-verified. PAN, license, vehicle docs.', bg: 'var(--orange-light)', c: 'var(--orange)' },
+            ].map(({ Ic, t, d, bg, c }) => (
+              <div key={t} className="surface-lift" style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border-light)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 24 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <Ic size={22} color={c} strokeWidth={1.75} />
+                </div>
+                <div className="syne" style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{t}</div>
+                <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.55, marginTop: 6 }}>{d}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <motion.div className="step-line" variants={stagger} initial="hidden" animate={stepsVisible ? 'show' : 'hidden'}>
-          {steps.map(([num, title, desc], index) => (
-            <motion.article key={num} variants={fadeUp} custom={index * 0.15} className="step-card">
-              <strong>{num}</strong>
-              <h3>{title}</h3>
-              <p>{desc}</p>
-            </motion.article>
-          ))}
-        </motion.div>
       </section>
 
-      <section id="roles" ref={rolesRef} className="roles-section">
-        <motion.article variants={fadeUp} initial="hidden" animate={rolesVisible ? 'show' : 'hidden'} className="role-card dark-role">
-          <span className="role-badge">Shippers / Businesses</span>
-          <h2>Move goods without calling ten operators.</h2>
-          {['Instant truck and hamali booking', 'Live tracking with ETA', 'Transparent GST fare breakdown', 'Receipts, complaints, and chat in one place'].map((item) => (
-            <p key={item}><Check size={18} />{item}</p>
-          ))}
-          <Link href="/register" className="role-cta">Start as customer</Link>
-        </motion.article>
-        <motion.article variants={fadeUp} custom={1} initial="hidden" animate={rolesVisible ? 'show' : 'hidden'} className="role-card light-role">
-          <span className="role-badge">Drivers & Hamali</span>
-          <h2>Earn from nearby demand and return loads.</h2>
-          {['Go online when available', 'Receive nearby requests in real time', 'Counter within controlled fare range', 'Track earnings and completed jobs'].map((item) => (
-            <p key={item}><Check size={18} />{item}</p>
-          ))}
-          <Link href="/register" className="role-cta">Become a provider</Link>
-        </motion.article>
-      </section>
+      {/* How it works */}
+      <section id="how" style={{ padding: 'clamp(64px, 10vw, 96px) clamp(20px, 5vw, 72px)', background: '#fff' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+          <div style={{ display: 'inline-block', background: '#F2EFE9', color: 'var(--text)', padding: '6px 14px', borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 20 }}>How it works</div>
+          <h2 className="syne" style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 700, margin: 0, letterSpacing: '-0.03em' }}>Move anything in 4 steps.</h2>
 
-      <section id="early-access" className="early-section">
-        <div>
-          <p className="eyebrow">EARLY ACCESS</p>
-          <h2>Ready to move with FYRO?</h2>
-          <p>Join the Vijayawada rollout list for shippers, truck owners, and hamali teams.</p>
+          <div className="steps-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginTop: 72, position: 'relative' }}>
+            {[
+              { Ic: User, t: 'Create account', d: 'Sign up with phone, verify OTP, pick your role.' },
+              { Ic: FileText, t: 'Post your need', d: 'Pickup, drop, vehicle type, date — under 60 seconds.' },
+              { Ic: Zap, t: 'Get matched', d: 'Nearby verified providers respond in minutes.' },
+              { Ic: MapPin, t: 'Track & pay', d: 'Live map, in-app chat, UPI on completion.' },
+            ].map(({ Ic, t, d }, i) => (
+              <div key={t} className="surface-lift" style={{ position: 'relative', borderRadius: 18, padding: 16 }}>
+                <div className="syne" style={{ position: 'absolute', top: -8, right: 4, fontSize: 56, fontWeight: 800, color: 'rgba(26,25,22,0.06)', letterSpacing: '-0.04em' }}>0{i + 1}</div>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--orange-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, position: 'relative' }}>
+                  <Ic size={26} color="var(--orange)" strokeWidth={1.75} />
+                </div>
+                <div className="syne" style={{ fontSize: 20, fontWeight: 700 }}>{t}</div>
+                <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.55, marginTop: 8 }}>{d}</div>
+              </div>
+            ))}
+          </div>
         </div>
+      </section>
+
+      {/* Role cards */}
+      <section id="roles" style={{ padding: 'clamp(64px, 10vw, 96px) clamp(20px, 5vw, 72px)', background: 'var(--bg)' }}>
+        <div className="roles-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, maxWidth: 1400, margin: '0 auto' }}>
+          <div className="surface-lift" style={{ background: 'var(--dark)', color: '#fff', borderRadius: 28, padding: 44, position: 'relative', overflow: 'hidden', minHeight: 440 }}>
+            <div style={{ position: 'absolute', bottom: -60, right: -60, width: 260, height: 260, background: 'radial-gradient(circle, rgba(255,107,43,0.2), transparent 70%)' }} />
+            <span style={{ display: 'inline-block', background: 'rgba(255,107,43,0.15)', color: 'var(--orange)', padding: '4px 9px', borderRadius: 999, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 24, position: 'relative' }}>SHIPPERS</span>
+            <h3 className="syne" style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, margin: '16px 0 20px', letterSpacing: '-0.02em', lineHeight: 1.05, position: 'relative' }}>
+              Move goods faster,<br />pay less.
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28, position: 'relative' }}>
+              {['Instant booking in 60s', 'Live GPS tracking', 'GST invoicing built-in', 'Return-load savings up to 40%'].map(t => (
+                <div key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 15 }}>
+                  <Check size={18} color="var(--orange)" strokeWidth={2.5} /> {t}
+                </div>
+              ))}
+            </div>
+            <Link href="/register" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 36, padding: '12px 22px', borderRadius: 999, background: 'var(--orange)', color: '#fff', fontWeight: 600, textDecoration: 'none', fontSize: 15 }}>Start shipping <ArrowRight size={14} /></Link>
+          </div>
+
+          <div className="surface-lift" style={{ background: '#fff', borderRadius: 28, padding: 44, border: '1px solid var(--border-light)', minHeight: 440 }}>
+            <span style={{ display: 'inline-block', background: 'var(--teal-light)', color: 'var(--teal)', padding: '4px 9px', borderRadius: 999, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 24 }}>PROVIDERS</span>
+            <h3 className="syne" style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, margin: '16px 0 20px', letterSpacing: '-0.02em', lineHeight: 1.05 }}>
+              More jobs.<br />Better earnings.
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28 }}>
+              {['Accept or reject freely', 'Smart return-load matching', 'Instant UPI payouts', 'Build reputation with ratings'].map(t => (
+                <div key={t} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 15 }}>
+                  <Check size={18} color="var(--teal)" strokeWidth={2.5} /> {t}
+                </div>
+              ))}
+            </div>
+            <Link href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 36, padding: '12px 22px', borderRadius: 999, background: 'var(--dark)', color: '#fff', fontWeight: 600, textDecoration: 'none', fontSize: 15 }}>Join as provider <ArrowRight size={14} /></Link>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section id="cta" style={{ background: 'var(--dark)', color: '#fff', padding: 'clamp(64px, 10vw, 96px) clamp(20px, 5vw, 72px)', position: 'relative', overflow: 'hidden', textAlign: 'center' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(255,107,43,0.15), transparent 60%)' }} />
+        <h2 className="syne" style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 800, margin: 0, letterSpacing: '-0.03em', position: 'relative' }}>
+          Ready to move with <span style={{ color: 'var(--orange)' }}>FYRO</span>?
+        </h2>
+        <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.6)', marginTop: 16, position: 'relative' }}>Join 2,400+ Indian businesses already moving smarter.</p>
         <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (phone.trim().length >= 10) setSubmitted(true)
-          }}
+          onSubmit={(e) => e.preventDefault()}
+          style={{ display: 'flex', gap: 8, maxWidth: 520, margin: '40px auto 0', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 999, padding: 6, position: 'relative' }}
         >
-          <label htmlFor="early-phone">Mobile number</label>
-          <div className="phone-row">
-            <input id="early-phone" value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" placeholder="+91 98765 43210" />
-            <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} type="submit">
-              {submitted ? 'Added' : 'Get early access'}
-            </motion.button>
-          </div>
-          <div className="language-pills" aria-label="Language options">
-            <span><Languages size={15} /> English</span>
-            <span>हिंदी</span>
-            <span>తెలుగు</span>
-          </div>
+          <input
+            placeholder="+91 98XXX XXXXX"
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', padding: '0 18px', fontSize: 15, minWidth: 0 }}
+          />
+          <Link href="/register" style={{ padding: '12px 22px', borderRadius: 999, background: 'var(--orange)', color: '#fff', fontWeight: 600, textDecoration: 'none', fontSize: 15, whiteSpace: 'nowrap' }}>Get early access</Link>
         </form>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 14, position: 'relative' }}>No app download needed to start</div>
+        <div style={{ marginTop: 36, display: 'flex', justifyContent: 'center', position: 'relative' }}>
+          <LangPills dark />
+        </div>
       </section>
 
-      <footer className="footer">
-        <div className="brand">
-          <span className="brand-mark">F</span>
-          <span>
-            <strong>FYRO</strong>
-            <small>FIND YOUR RIGHT ONE</small>
-          </span>
+      {/* Footer */}
+      <footer style={{ background: 'var(--bg)', padding: '36px clamp(20px, 5vw, 72px)', display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--divider)', fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <Wordmark size={20} />
+          <span>— Find Your Right One</span>
         </div>
-        <nav aria-label="Footer navigation">
-          <Link href="#">Privacy</Link>
-          <Link href="#">Terms</Link>
-          <Link href="#">Support</Link>
-          <Link href="/register">Partner with us</Link>
-        </nav>
-        <p>Copyright {new Date().getFullYear()} FYRO Logistics.</p>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          <a href="#" style={{ textDecoration: 'none' }}>Privacy</a>
+          <a href="#" style={{ textDecoration: 'none' }}>Terms</a>
+          <a href="#" style={{ textDecoration: 'none' }}>Support</a>
+          <a href="#" style={{ textDecoration: 'none' }}>Careers</a>
+          <a href="#" style={{ textDecoration: 'none' }}>Partner with us</a>
+        </div>
+        <div>© 2026 FYRO Logistics Pvt Ltd</div>
       </footer>
 
-      <style jsx>{`
-        .landing {
-          min-height: 100vh;
-          background: var(--bg);
-          color: var(--text);
-          overflow-x: hidden;
-        }
-        .nav-shell {
-          position: sticky;
-          top: 0;
-          z-index: 30;
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 24px;
-          min-height: 76px;
-          padding: 12px clamp(20px, 5vw, 64px);
-          background: rgba(242, 239, 233, 0.88);
-          border-bottom: 1px solid var(--border);
-          backdrop-filter: blur(18px);
-        }
-        .brand {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          color: inherit;
-          text-decoration: none;
-        }
-        .brand-mark {
-          display: grid;
-          place-items: center;
-          width: 40px;
-          height: 40px;
-          border-radius: var(--radius-sm);
-          background: var(--accent);
-          color: white;
-          font: 800 20px/1 Syne, sans-serif;
-          box-shadow: var(--shadow-sm);
-        }
-        .brand strong {
-          display: block;
-          font: 800 20px/1 Syne, sans-serif;
-          letter-spacing: -0.02em;
-        }
-        .brand small {
-          display: block;
-          margin-top: 3px;
-          color: var(--text-muted);
-          font-size: 10px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-        }
-        .nav-shell nav {
-          display: flex;
-          justify-content: center;
-          gap: 28px;
-        }
-        .nav-shell a {
-          color: var(--text-muted);
-          font-weight: 500;
-          text-decoration: none;
-        }
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .ghost-link,
-        .solid-link,
-        .cta-primary,
-        .cta-secondary,
-        .role-cta {
-          min-height: 48px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          border-radius: 999px;
-          padding: 0 22px;
-          font-weight: 600;
-          text-decoration: none;
-        }
-        .solid-link,
-        .cta-primary,
-        .role-cta {
-          background: var(--accent);
-          color: white;
-        }
-        .cta-secondary,
-        .ghost-link {
-          border: 1px solid var(--border-strong);
-          color: var(--text);
-          background: transparent;
-        }
-        .hero-section {
-          display: grid;
-          grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.72fr);
-          gap: clamp(32px, 6vw, 80px);
-          align-items: center;
-          max-width: 1240px;
-          min-height: calc(100vh - 180px);
-          padding: clamp(52px, 8vw, 96px) clamp(20px, 5vw, 64px) 44px;
-          margin: 0 auto;
-        }
-        .eyebrow {
-          color: var(--accent);
-          font-size: var(--text-xs);
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-        }
-        .hero-title {
-          margin: 18px 0 24px;
-          max-width: 820px;
-          font: 800 var(--text-hero)/1 Syne, sans-serif;
-          letter-spacing: -0.04em;
-        }
-        .hero-title span {
-          display: inline-block;
-        }
-        .accent-word {
-          color: var(--accent);
-        }
-        .hero-subline {
-          display: block !important;
-          margin-top: 6px;
-        }
-        .hero-body {
-          max-width: 640px;
-          color: var(--text-muted);
-          font-size: var(--text-lg);
-        }
-        .hero-actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 12px;
-          margin-top: 34px;
-        }
-        .booking-card {
-          width: 100%;
-          max-width: 440px;
-          justify-self: end;
-          padding: 24px;
-          border: 1px solid var(--border-dark);
-          border-radius: var(--radius-xl);
-          background: var(--surface-dark);
-          color: var(--text-on-dark);
-          box-shadow: var(--shadow-xl);
-        }
-        .card-top,
-        .vehicle-row,
-        .booking-metrics {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-        }
-        .card-top {
-          margin-bottom: 24px;
-          color: var(--text-muted-dark);
-          font-size: var(--text-sm);
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-        }
-        .card-top strong {
-          color: var(--accent);
-          font-family: Syne, sans-serif;
-          letter-spacing: 0;
-        }
-        .vehicle-row {
-          justify-content: flex-start;
-          padding: 16px;
-          border-radius: var(--radius-md);
-          background: var(--surface-dark-2);
-          border: 1px solid var(--border-dark);
-        }
-        .truck-icon {
-          display: grid;
-          place-items: center;
-          width: 52px;
-          height: 52px;
-          border-radius: var(--radius-md);
-          background: var(--accent);
-        }
-        .vehicle-row p,
-        .route-list p {
-          margin: 0;
-          font-weight: 600;
-        }
-        .vehicle-row small,
-        .route-list small,
-        .booking-metrics small {
-          display: block;
-          color: var(--text-muted-dark);
-          font-size: var(--text-xs);
-          font-weight: 500;
-        }
-        .route-list {
-          display: grid;
-          gap: 18px;
-          margin: 24px 0;
-        }
-        .route-list div {
-          display: grid;
-          grid-template-columns: 18px 1fr;
-          gap: 12px;
-          align-items: start;
-        }
-        .route-dot {
-          width: 12px;
-          height: 12px;
-          margin-top: 8px;
-          border-radius: 50%;
-        }
-        .pickup {
-          background: var(--accent);
-          box-shadow: 0 0 0 8px rgba(255, 107, 43, 0.14);
-        }
-        .drop {
-          background: var(--text-on-dark);
-        }
-        .booking-metrics {
-          padding: 16px;
-          border-radius: var(--radius-md);
-          background: rgba(255, 255, 255, 0.05);
-        }
-        .booking-metrics strong {
-          display: block;
-          margin-top: 2px;
-          font: 800 24px/1 Syne, sans-serif;
-          color: var(--accent);
-        }
-        .mini-map {
-          position: relative;
-          height: 148px;
-          margin-top: 18px;
-          overflow: hidden;
-          border-radius: var(--radius-lg);
-          background:
-            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
-            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-            #11100E;
-          background-size: 42px 42px;
-        }
-        .map-line {
-          position: absolute;
-          inset: 42px 64px 54px 52px;
-          border: 2px dashed rgba(255, 107, 43, 0.72);
-          border-left: 0;
-          border-bottom: 0;
-          border-radius: 0 40px 0 0;
-        }
-        .map-pin,
-        .map-truck {
-          position: absolute;
-          display: grid;
-          place-items: center;
-          border-radius: 50%;
-        }
-        .map-pin {
-          width: 16px;
-          height: 16px;
-          background: var(--accent);
-        }
-        .map-pin.start { left: 44px; bottom: 44px; }
-        .map-pin.end { right: 54px; top: 34px; background: var(--text-on-dark); }
-        .map-truck {
-          left: 54%;
-          top: 44px;
-          width: 36px;
-          height: 36px;
-          color: white;
-          background: var(--accent);
-          animation: floatTruck 2.4s ease-in-out infinite;
-        }
-        .stats-row {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1px;
-          max-width: 1112px;
-          margin: 0 auto 0;
-          overflow: hidden;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-xl);
-          background: var(--border);
-        }
-        .stats-row div {
-          padding: 28px 24px;
-          background: rgba(255,255,255,0.45);
-        }
-        .stats-row strong {
-          display: block;
-          font: 800 var(--text-3xl)/1 Syne, sans-serif;
-          color: var(--accent);
-          font-variant-numeric: tabular-nums;
-        }
-        .stats-row span {
-          color: var(--text-muted);
-          font-weight: 500;
-        }
-        .features-section,
-        .steps-section,
-        .roles-section,
-        .early-section,
-        .footer {
-          padding-left: clamp(20px, 5vw, 64px);
-          padding-right: clamp(20px, 5vw, 64px);
-        }
-        .features-section {
-          margin-top: 84px;
-          padding-top: 88px;
-          padding-bottom: 96px;
-          background: var(--bg-secondary);
-        }
-        .section-heading {
-          max-width: 720px;
-          margin: 0 auto 40px;
-          text-align: center;
-        }
-        .section-heading h2,
-        .early-section h2,
-        .role-card h2 {
-          margin: 8px 0 0;
-          font: 700 var(--text-3xl)/1.1 Syne, sans-serif;
-          letter-spacing: -0.03em;
-        }
-        .feature-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 18px;
-          max-width: 1112px;
-          margin: 0 auto;
-        }
-        .feature-card {
-          min-height: 230px;
-          padding: 24px;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          background: var(--surface);
-          box-shadow: var(--shadow-sm);
-        }
-        .feature-card svg {
-          color: var(--accent);
-        }
-        .feature-card h3 {
-          margin: 20px 0 8px;
-          font: 600 var(--text-xl)/1.15 Syne, sans-serif;
-          letter-spacing: -0.02em;
-        }
-        .feature-card p {
-          color: var(--text-muted);
-        }
-        .feature-card.highlight {
-          grid-column: span 2;
-          background: var(--surface-dark);
-          color: var(--text-on-dark);
-        }
-        .feature-card.highlight p {
-          color: var(--text-muted-dark);
-        }
-        .steps-section {
-          max-width: 1240px;
-          margin: 0 auto;
-          padding-top: 96px;
-          padding-bottom: 96px;
-        }
-        .step-line {
-          position: relative;
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 20px;
-        }
-        .step-line:before {
-          content: '';
-          position: absolute;
-          top: 31px;
-          left: 8%;
-          right: 8%;
-          height: 2px;
-          background: var(--border-strong);
-        }
-        .step-card {
-          position: relative;
-          z-index: 1;
-          padding: 0 8px;
-        }
-        .step-card strong {
-          display: grid;
-          place-items: center;
-          width: 64px;
-          height: 64px;
-          margin-bottom: 20px;
-          border-radius: 50%;
-          background: var(--accent);
-          color: white;
-          font: 800 18px/1 Syne, sans-serif;
-        }
-        .step-card h3 {
-          font: 600 var(--text-xl)/1.15 Syne, sans-serif;
-          letter-spacing: -0.02em;
-        }
-        .step-card p {
-          margin-top: 8px;
-          color: var(--text-muted);
-        }
-        .roles-section {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 20px;
-          max-width: 1240px;
-          margin: 0 auto 96px;
-        }
-        .role-card {
-          padding: clamp(28px, 5vw, 48px);
-          border-radius: var(--radius-xl);
-          border: 1px solid var(--border);
-        }
-        .dark-role {
-          background: var(--surface-dark);
-          color: var(--text-on-dark);
-        }
-        .light-role {
-          background: var(--surface);
-        }
-        .role-badge {
-          display: inline-flex;
-          margin-bottom: 18px;
-          border-radius: 999px;
-          padding: 8px 12px;
-          background: rgba(255, 107, 43, 0.13);
-          color: var(--accent);
-          font-size: var(--text-xs);
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-        }
-        .role-card p {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          margin-top: 18px;
-          color: inherit;
-        }
-        .dark-role p {
-          color: var(--text-muted-dark);
-        }
-        .role-card p svg {
-          color: var(--accent);
-          flex: 0 0 auto;
-        }
-        .role-cta {
-          margin-top: 28px;
-        }
-        .early-section {
-          display: grid;
-          grid-template-columns: 0.8fr 1fr;
-          gap: 32px;
-          align-items: center;
-          padding-top: 64px;
-          padding-bottom: 64px;
-          background: var(--surface-dark);
-          color: var(--text-on-dark);
-        }
-        .early-section > div,
-        .early-section form {
-          max-width: 560px;
-        }
-        .early-section p:not(.eyebrow) {
-          color: var(--text-muted-dark);
-        }
-        .early-section label {
-          display: block;
-          margin-bottom: 8px;
-          color: var(--text-muted-dark);
-          font-size: var(--text-sm);
-          font-weight: 600;
-        }
-        .phone-row {
-          display: grid;
-          grid-template-columns: 1fr auto;
-          gap: 10px;
-        }
-        .phone-row input {
-          min-height: 52px;
-          width: 100%;
-          border: 1px solid var(--border-dark);
-          border-radius: var(--radius-md);
-          padding: 0 16px;
-          background: rgba(255,255,255,0.06);
-          color: var(--text-on-dark);
-          font: 400 16px/1 Outfit, sans-serif;
-          outline: none;
-        }
-        .phone-row button {
-          min-height: 52px;
-          border: 0;
-          border-radius: var(--radius-md);
-          padding: 0 20px;
-          background: var(--accent);
-          color: white;
-          font-weight: 700;
-          cursor: pointer;
-        }
-        .language-pills {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 14px;
-        }
-        .language-pills span {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          border: 1px solid var(--border-dark);
-          border-radius: 999px;
-          padding: 8px 12px;
-          color: var(--text-muted-dark);
-          font-weight: 600;
-        }
-        .footer {
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 24px;
-          padding-top: 32px;
-          padding-bottom: 32px;
-          background: var(--surface-dark);
-          color: var(--text-on-dark);
-          border-top: 1px solid var(--border-dark);
-        }
-        .footer nav {
-          display: flex;
-          justify-content: center;
-          gap: 20px;
-        }
-        .footer a,
-        .footer p {
-          color: var(--text-muted-dark);
-          text-decoration: none;
-        }
-        @keyframes floatTruck {
-          0%, 100% { transform: translate3d(0, 0, 0); }
-          50% { transform: translate3d(10px, -5px, 0); }
-        }
-        @media (max-width: 920px) {
-          .nav-shell {
-            grid-template-columns: auto auto;
-          }
-          .nav-shell nav {
-            display: none;
-          }
-          .hero-section,
-          .early-section,
-          .roles-section {
-            grid-template-columns: 1fr;
-          }
-          .booking-card {
-            justify-self: stretch;
-            max-width: none;
-          }
-          .feature-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .step-line {
-            grid-template-columns: 1fr;
-          }
-          .step-line:before {
-            top: 0;
-            bottom: 0;
-            left: 31px;
-            right: auto;
-            width: 2px;
-            height: auto;
-          }
-          .step-card {
-            display: grid;
-            grid-template-columns: 64px 1fr;
-            column-gap: 16px;
-          }
-          .step-card strong {
-            grid-row: span 2;
-          }
-          .footer {
-            grid-template-columns: 1fr;
-          }
-          .footer nav {
-            justify-content: flex-start;
-            flex-wrap: wrap;
-          }
-        }
-        @media (max-width: 640px) {
-          .nav-shell {
-            min-height: 68px;
-          }
-          .nav-actions .ghost-link {
-            display: none;
-          }
-          .solid-link {
-            padding: 0 16px;
-          }
-          .hero-section {
-            min-height: auto;
-            padding-top: 40px;
-          }
-          .hero-actions,
-          .phone-row,
-          .stats-row {
-            grid-template-columns: 1fr;
-          }
-          .hero-actions a,
-          .cta-primary,
-          .cta-secondary {
-            width: 100%;
-          }
-          .stats-row {
-            display: grid;
-          }
-          .feature-grid {
-            grid-template-columns: 1fr;
-          }
-          .feature-card.highlight {
-            grid-column: auto;
-          }
+      <style jsx global>{`
+        @media (min-width: 900px) {
+          nav .nav-links { display: flex !important; }
+        }
+        @media (max-width: 900px) {
+          .hero-grid { grid-template-columns: 1fr !important; }
+          .hero-card { justify-self: stretch !important; max-width: 100% !important; transform: none !important; }
+          .feature-grid { grid-template-columns: 1fr !important; }
+          .feature-grid > :first-child { grid-row: auto !important; }
+          .steps-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .roles-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 560px) {
+          .steps-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
-    </motion.main>
+    </main>
   )
 }

@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
-import { Truck, Package, Users, ChevronLeft, Eye, EyeOff, Plus, Minus } from 'lucide-react'
-import { fadeUp, staggerContainer } from '@/lib/animations'
+import { User, Truck, Package, ChevronLeft, Eye, EyeOff, Plus, Minus, ArrowRight } from 'lucide-react'
 
 type Role = 'customer' | 'driver' | 'hamali'
 type Lang = 'EN' | 'HI' | 'TE'
@@ -22,7 +21,6 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
-  // Common fields
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -30,11 +28,9 @@ export default function RegisterPage() {
   const [confirm, setConfirm] = useState('')
   const [lang, setLang] = useState<Lang>('EN')
 
-  // Driver fields
   const [vehicleType, setVehicleType] = useState('')
   const [regNumber, setRegNumber] = useState('')
 
-  // Hamali fields
   const [teamSize, setTeamSize] = useState(1)
   const [ratePerJob, setRatePerJob] = useState('')
   const [ratePerHour, setRatePerHour] = useState('')
@@ -77,77 +73,104 @@ export default function RegisterPage() {
     }
   }
 
-  const inputStyle = {
-    width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)',
-    borderRadius: 'var(--radius-sm)', padding: '14px 16px', fontSize: 16, color: 'var(--text)',
-    outline: 'none', fontFamily: 'Outfit, sans-serif'
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    height: 52,
+    background: 'var(--bg)',
+    border: '1px solid var(--border-light)',
+    borderRadius: 12,
+    padding: '0 16px',
+    fontSize: 16,
+    color: 'var(--text)',
+    outline: 'none',
+    fontFamily: 'var(--font-body)',
   }
 
-  const labelStyle = { display: 'block' as const, fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'var(--text)' }
+  const labelStyle: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: 'var(--text)' }
 
-  const roleCards = [
-    { r: 'customer' as Role, icon: Package, label: 'Customer', sub: "I'm sending goods", color: 'var(--accent)', bg: 'var(--accent-light)' },
-    { r: 'driver' as Role, icon: Truck, label: 'Truck Driver', sub: 'I drive trucks', color: 'var(--accent)', bg: 'var(--accent-light)' },
-    { r: 'hamali' as Role, icon: Users, label: 'Hamali Worker', sub: 'I provide loading services', color: 'var(--teal)', bg: 'var(--teal-light)' },
+  const roleCards: { r: Role; icon: any; title: string; sub: string; color: 'orange' | 'teal' }[] = [
+    { r: 'customer', icon: User, title: 'Customer', sub: 'Book trucks and workers', color: 'orange' },
+    { r: 'driver', icon: Truck, title: 'Truck Driver', sub: 'Accept trips, grow earnings', color: 'orange' },
+    { r: 'hamali', icon: Package, title: 'Hamali Worker', sub: 'Loading/unloading jobs', color: 'teal' },
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '100%', maxWidth: 480 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '16px 0 32px' }}>
+      <div style={{ maxWidth: 460, margin: '0 auto', padding: '0 20px' }}>
 
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 800, color: 'white', fontSize: 18 }}>F</div>
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 20 }}>FYRO</span>
+        {/* Progress header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => step === 1 ? router.back() : setStep(step - 1)}
+            style={{ width: 36, height: 36, borderRadius: 10, background: '#fff', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
+              STEP {step} OF 2
+            </div>
+            <div style={{ height: 3, background: 'rgba(26,25,22,0.08)', borderRadius: 999, marginTop: 4 }}>
+              <div style={{ height: '100%', width: step === 1 ? '50%' : '100%', background: 'var(--orange)', borderRadius: 999, transition: 'width 0.3s' }} />
+            </div>
           </div>
         </div>
 
         <AnimatePresence mode="wait">
           {step === 1 && (
-            <motion.div key="step1" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.35 }}>
-              <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                <div style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 8 }}>Step 1 of 2</div>
-                <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 28, marginBottom: 8 }}>Choose your role</h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>How will you use FYRO?</p>
+            <motion.div key="step1" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.35 }} style={{ marginTop: 24 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.04em' }}>FYRO</span>
+              <h1 className="syne" style={{ fontSize: 28, fontWeight: 700, margin: '16px 0 4px' }}>Join FYRO</h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Choose how you'll use FYRO</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
+                {roleCards.map(rc => {
+                  const active = role === rc.r
+                  const col = rc.color === 'teal' ? 'var(--teal)' : 'var(--orange)'
+                  const tint = rc.color === 'teal' ? 'var(--teal-tint)' : 'var(--orange-tint)'
+                  const light = rc.color === 'teal' ? 'var(--teal-light)' : 'var(--orange-light)'
+                  return (
+                    <button
+                      key={rc.r}
+                      onClick={() => selectRole(rc.r)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 14,
+                        padding: 16,
+                        borderRadius: 16,
+                        border: active ? `2px solid ${col}` : '1px solid var(--border-light)',
+                        background: active ? tint : '#fff',
+                        textAlign: 'left',
+                        transition: 'all 0.15s',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: light, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <rc.icon size={22} color={col} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div className="syne" style={{ fontWeight: 700, fontSize: 16 }}>{rc.title}</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{rc.sub}</div>
+                      </div>
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', border: active ? `6px solid ${col}` : '2px solid var(--border-light)', background: '#fff' }} />
+                    </button>
+                  )
+                })}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {roleCards.map(rc => (
-                  <motion.div key={rc.r} whileTap={{ scale: 0.98 }} whileHover={{ y: -2, boxShadow: 'var(--shadow-md)' }} onClick={() => selectRole(rc.r)}
-                    style={{
-                      background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '20px 24px',
-                      border: '1.5px solid var(--border-strong)', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 16, boxShadow: 'var(--shadow-sm)'
-                    }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 12, background: rc.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <rc.icon size={24} color={rc.color} />
-                    </div>
-                    <div>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, marginBottom: 3 }}>{rc.label}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{rc.sub}</div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+
               <div style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: 'var(--text-muted)' }}>
-                Already have an account? <Link href="/login" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Login</Link>
+                Already have an account? <Link href="/login" style={{ color: 'var(--orange)', fontWeight: 600, textDecoration: 'none' }}>Login</Link>
               </div>
             </motion.div>
           )}
 
           {step === 2 && role && (
-            <motion.div key="step2" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.35 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <button onClick={() => setStep(1)} style={{ background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                  <ChevronLeft size={18} />
-                </button>
-                <div>
-                  <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>Step 2 of 2</div>
-                  <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22 }}>Create your account</h1>
-                </div>
-              </div>
+            <motion.div key="step2" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.35 }} style={{ marginTop: 24 }}>
+              <h1 className="syne" style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Create your account</h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Fill in your details to get started</p>
 
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 20 }}>
                 <div>
                   <label style={labelStyle}>Full Name</label>
                   <input value={name} onChange={e => setName(e.target.value)} placeholder="Ravi Kumar" style={inputStyle} />
@@ -166,7 +189,7 @@ export default function RegisterPage() {
                 <div>
                   <label style={labelStyle}>Password</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" style={{ ...inputStyle, paddingRight: 48 }} />
+                    <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" style={{ ...inputStyle, paddingRight: 44 }} />
                     <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
                       {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
                     </button>
@@ -176,30 +199,28 @@ export default function RegisterPage() {
                 <div>
                   <label style={labelStyle}>Confirm Password</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter password" style={{ ...inputStyle, paddingRight: 48 }} />
+                    <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter password" style={{ ...inputStyle, paddingRight: 44 }} />
                     <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
                       {showConfirm ? <EyeOff size={17} /> : <Eye size={17} />}
                     </button>
                   </div>
                 </div>
 
-                {/* Language selector */}
                 <div>
                   <label style={labelStyle}>Preferred Language</label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {(['EN', 'HI', 'TE'] as Lang[]).map(l => (
                       <button key={l} type="button" onClick={() => setLang(l)} style={{
-                        flex: 1, padding: '10px', borderRadius: 'var(--radius-sm)',
-                        border: '1.5px solid', borderColor: lang === l ? 'var(--accent)' : 'var(--border-strong)',
-                        background: lang === l ? 'var(--accent-light)' : 'transparent',
-                        color: lang === l ? 'var(--accent)' : 'var(--text-muted)',
-                        fontWeight: 600, fontSize: 14, cursor: 'pointer'
+                        flex: 1, padding: '10px', borderRadius: 10,
+                        border: lang === l ? '2px solid var(--orange)' : '1px solid var(--border-light)',
+                        background: lang === l ? 'var(--orange-tint)' : '#fff',
+                        color: lang === l ? 'var(--orange)' : 'var(--text-muted)',
+                        fontWeight: 600, fontSize: 13, cursor: 'pointer'
                       }}>{l}</button>
                     ))}
                   </div>
                 </div>
 
-                {/* Driver extra fields */}
                 {role === 'driver' && (
                   <>
                     <div>
@@ -207,10 +228,10 @@ export default function RegisterPage() {
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {VEHICLE_TYPES.map(vt => (
                           <button key={vt} type="button" onClick={() => setVehicleType(vt)} style={{
-                            padding: '8px 14px', borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 500,
-                            border: '1.5px solid', borderColor: vehicleType === vt ? 'var(--accent)' : 'var(--border-strong)',
-                            background: vehicleType === vt ? 'var(--accent-light)' : 'transparent',
-                            color: vehicleType === vt ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer'
+                            padding: '8px 14px', borderRadius: 999, fontSize: 12, fontWeight: 500,
+                            border: vehicleType === vt ? '2px solid var(--orange)' : '1px solid var(--border-light)',
+                            background: vehicleType === vt ? 'var(--orange-tint)' : '#fff',
+                            color: vehicleType === vt ? 'var(--orange)' : 'var(--text-muted)', cursor: 'pointer'
                           }}>{vt.replace(/_/g, ' ')}</button>
                         ))}
                       </div>
@@ -222,15 +243,14 @@ export default function RegisterPage() {
                   </>
                 )}
 
-                {/* Hamali extra fields */}
                 {role === 'hamali' && (
                   <>
                     <div>
                       <label style={labelStyle}>Team Size</label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <button type="button" onClick={() => setTeamSize(Math.max(1, teamSize - 1))} style={{ width: 36, height: 36, borderRadius: 8, border: '1.5px solid var(--border-strong)', background: 'var(--surface-raised)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={16} /></button>
+                        <button type="button" onClick={() => setTeamSize(Math.max(1, teamSize - 1))} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border-light)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={16} /></button>
                         <span style={{ fontSize: 18, fontWeight: 700, minWidth: 32, textAlign: 'center' }}>{teamSize}</span>
-                        <button type="button" onClick={() => setTeamSize(Math.min(10, teamSize + 1))} style={{ width: 36, height: 36, borderRadius: 8, border: '1.5px solid var(--border-strong)', background: 'var(--surface-raised)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={16} /></button>
+                        <button type="button" onClick={() => setTeamSize(Math.min(10, teamSize + 1))} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border-light)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={16} /></button>
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -248,9 +268,9 @@ export default function RegisterPage() {
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {SKILLS.map(s => (
                           <button key={s} type="button" onClick={() => toggleSkill(s)} style={{
-                            padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 500,
-                            border: '1.5px solid', borderColor: skills.includes(s) ? 'var(--teal)' : 'var(--border-strong)',
-                            background: skills.includes(s) ? 'var(--teal-light)' : 'transparent',
+                            padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 500,
+                            border: skills.includes(s) ? '2px solid var(--teal)' : '1px solid var(--border-light)',
+                            background: skills.includes(s) ? 'var(--teal-light)' : '#fff',
                             color: skills.includes(s) ? 'var(--teal)' : 'var(--text-muted)', cursor: 'pointer'
                           }}>{s}</button>
                         ))}
@@ -269,26 +289,35 @@ export default function RegisterPage() {
                   </>
                 )}
 
-                <motion.button type="submit" disabled={loading}
-                  whileHover={{ y: -2, boxShadow: 'var(--shadow-md)' }} whileTap={{ scale: 0.97 }}
+                <button
+                  type="submit"
+                  disabled={loading}
                   style={{
-                    width: '100%', border: 'none', borderRadius: 'var(--radius-md)', padding: '18px', fontSize: 16, fontWeight: 600,
-                    cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
-                    fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    background: role === 'hamali' ? 'var(--teal)' : 'var(--accent)', color: 'white'
-                  }}>
-                  {loading ? (
-                    <><span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Creating account...</>
-                  ) : 'Create Account'}
-                </motion.button>
+                    width: '100%',
+                    height: 52,
+                    marginTop: 8,
+                    background: role === 'hamali' ? 'var(--teal)' : 'var(--orange)',
+                    color: '#fff',
+                    borderRadius: 999,
+                    border: 'none',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.7 : 1,
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  {loading ? 'Creating...' : <>Create Account <ArrowRight size={16} /></>}
+                </button>
               </form>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-      <style jsx global>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   )
 }

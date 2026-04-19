@@ -1,9 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Avatar from './ui/Avatar'
 import CountdownTimer from './CountdownTimer'
-import { MapPin, Flag } from 'lucide-react'
+import { MapPin, Package, Truck } from 'lucide-react'
 
 interface Booking {
   _id: string
@@ -12,12 +11,13 @@ interface Booking {
   dropoff?: { address?: string }
   workLocation?: { address?: string }
   totalFare?: number
+  estimatedFare?: number
   vehicleType?: string
   bookingType?: string
   distanceKm?: number
   createdAt?: string
   userId?: { name?: string; photo?: string }
-  hamaliDetails?: { jobType?: string; hours?: number; floor?: number; heavyGoods?: boolean }
+  hamaliDetails?: { jobType?: string; type?: string; hours?: number; estimatedHours?: number; floor?: number; heavyGoods?: boolean }
 }
 
 interface Props {
@@ -28,136 +28,163 @@ interface Props {
 }
 
 function timeAgo(iso?: string): string {
-  if (!iso) return ''
+  if (!iso) return 'just now'
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
   if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins} min ago`
+  if (mins < 60) return `${mins}m ago`
   return `${Math.floor(mins / 60)}h ago`
 }
 
-export default function BookingRequestCard({ booking, onAccept, onDecline, themeColor = 'var(--accent)' }: Props) {
+export default function BookingRequestCard({ booking, onAccept, onDecline, themeColor = 'var(--orange)' }: Props) {
   const [exiting, setExiting] = useState<null | 'accept' | 'decline'>(null)
   const expiresAt = booking.createdAt
     ? new Date(booking.createdAt).getTime() + 120000
     : Date.now() + 120000
 
-  const customerName = booking.userId?.name || 'Customer'
   const pickupAddr = booking.pickup?.address || booking.workLocation?.address || 'N/A'
   const dropoffAddr = booking.dropoff?.address
+  const fare = booking.totalFare ?? booking.estimatedFare ?? 0
+  const badgeType = booking.bookingType === 'return_load' ? 'RETURN LOAD' : booking.bookingType === 'hamali' ? 'HAMALI' : 'TRANSPORT'
+  const isTeal = themeColor === 'var(--teal)' || themeColor.toString().includes('teal') || themeColor === '#0D9488'
 
-  const handleAccept = () => {
-    setExiting('accept')
-    setTimeout(() => onAccept(), 500)
-  }
-  const handleDecline = () => {
-    setExiting('decline')
-    setTimeout(() => onDecline(), 400)
-  }
+  const handleAccept = () => { setExiting('accept'); setTimeout(() => onAccept(), 350) }
+  const handleDecline = () => { setExiting('decline'); setTimeout(() => onDecline(), 350) }
 
   return (
     <AnimatePresence>
       {!exiting && (
         <motion.div
-          initial={{ y: -60, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={exiting === 'accept' ? { x: 100, opacity: 0 } : { x: -100, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+          initial={{ y: -20, opacity: 0, scale: 0.96 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={exiting === 'accept' ? { x: 120, opacity: 0 } : { x: -120, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 26 }}
           style={{
-            background: 'var(--surface)', borderRadius: 'var(--radius-md)',
-            padding: '18px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)',
-            position: 'relative', overflow: 'hidden'
-          }}>
-
-          {/* Flash overlay */}
-          {exiting && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.3 }}
-              style={{
-                position: 'absolute', inset: 0, borderRadius: 'var(--radius-md)',
-                background: exiting === 'accept' ? '#16A34A' : '#DC2626',
-                pointerEvents: 'none', zIndex: 10
-              }}
-            />
-          )}
-
-          {/* Header: fare + customer */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Avatar name={customerName} src={booking.userId?.photo} size="md" />
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{customerName}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{timeAgo(booking.createdAt)}</div>
-              </div>
+            background: 'var(--surface)',
+            borderRadius: 20,
+            padding: 18,
+            border: '1px solid var(--border-light)',
+            boxShadow: 'var(--shadow-md)'
+          }}
+        >
+          {/* header: type + fare */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span style={{
+              padding: '4px 10px',
+              borderRadius: 999,
+              background: badgeType === 'RETURN LOAD' ? 'var(--dark)' : isTeal ? 'var(--teal-light)' : 'var(--orange-light)',
+              color: badgeType === 'RETURN LOAD' ? 'var(--orange)' : isTeal ? 'var(--teal)' : 'var(--orange-dark)',
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              fontFamily: 'var(--font-body)'
+            }}>{badgeType}</span>
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontVariantNumeric: 'tabular-nums',
+              fontSize: 26,
+              fontWeight: 800,
+              color: themeColor,
+              letterSpacing: '-0.02em',
+              lineHeight: 1
+            }}>
+              ₹{Number(fare).toLocaleString('en-IN')}
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 26, color: themeColor, lineHeight: 1 }}>
-                ₹{booking.totalFare?.toFixed(0) || '--'}
-              </div>
-              {booking.distanceKm && (
-                <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>{booking.distanceKm.toFixed(1)} km</div>
+          </div>
+
+          {/* route with dots */}
+          <div style={{ display: 'flex', marginTop: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 12, paddingTop: 4 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: themeColor }} />
+              {dropoffAddr && (
+                <>
+                  <div style={{ width: 2, height: 28, background: 'var(--border-light)', margin: '3px 0' }} />
+                  <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--dark)' }} />
+                </>
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 500, fontSize: 15, color: 'var(--text)' }}>{pickupAddr}</div>
+              {dropoffAddr && (
+                <>
+                  <div style={{ height: 16 }} />
+                  <div style={{ fontWeight: 500, fontSize: 15, color: 'var(--text)' }}>{dropoffAddr}</div>
+                </>
               )}
             </div>
           </div>
 
-          {/* Route */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-              <MapPin size={15} color="var(--accent)" style={{ flexShrink: 0, marginTop: 2 }} />
-              <span style={{ fontSize: 14, fontWeight: 500 }}>{pickupAddr}</span>
-            </div>
-            {dropoffAddr && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <Flag size={15} color="var(--teal)" style={{ flexShrink: 0, marginTop: 2 }} />
-                <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{dropoffAddr}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Chips */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' as const }}>
+          {/* meta row */}
+          <div style={{ display: 'flex', marginTop: 14, fontSize: 12, color: 'var(--text-muted)', flexWrap: 'wrap', gap: 10 }}>
+            {booking.distanceKm != null && <div>{booking.distanceKm.toFixed(1)} km</div>}
             {booking.vehicleType && (
-              <span style={{ background: 'var(--surface-raised)', color: 'var(--text-muted)', fontSize: 12, padding: '4px 10px', borderRadius: 6, fontWeight: 500 }}>
-                {booking.vehicleType.replace(/_/g, ' ')}
-              </span>
+              <>
+                <div>·</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Truck size={12} /> {booking.vehicleType.replace(/_/g, ' ')}
+                </div>
+              </>
             )}
-            {booking.hamaliDetails?.jobType && (
-              <span style={{ background: 'var(--teal-light)', color: 'var(--teal)', fontSize: 12, padding: '4px 10px', borderRadius: 6, fontWeight: 500 }}>
-                {booking.hamaliDetails.jobType}
-              </span>
+            {booking.hamaliDetails?.type && (
+              <>
+                <div>·</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, textTransform: 'capitalize' }}>
+                  <Package size={12} /> {booking.hamaliDetails.type}
+                </div>
+              </>
             )}
-            {booking.hamaliDetails?.hours && (
-              <span style={{ background: 'var(--surface-raised)', color: 'var(--text-muted)', fontSize: 12, padding: '4px 10px', borderRadius: 6 }}>
-                {booking.hamaliDetails.hours}h
-              </span>
+            {(booking.hamaliDetails?.estimatedHours || booking.hamaliDetails?.hours) && (
+              <>
+                <div>·</div>
+                <div>~{booking.hamaliDetails.estimatedHours || booking.hamaliDetails.hours}h</div>
+              </>
             )}
+            <div>·</div>
+            <div>{timeAgo(booking.createdAt)}</div>
           </div>
 
-          {/* Countdown */}
-          <div style={{ marginBottom: 16 }}>
-            <CountdownTimer expiresAt={expiresAt} onExpire={handleDecline} />
+          {/* countdown */}
+          <div style={{ marginTop: 14 }}>
+            <CountdownTimer expiresAt={expiresAt} onExpire={handleDecline} themeColor={themeColor} />
           </div>
 
-          {/* Actions */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <motion.button whileTap={{ scale: 0.97 }} onClick={handleAccept}
+          {/* actions */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            <button
+              onClick={handleDecline}
               style={{
-                width: '100%', background: '#16A34A', color: 'white', border: 'none',
-                borderRadius: 'var(--radius-md)', padding: '16px', fontSize: 16, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'Outfit, sans-serif', minHeight: 48
-              }}>
-              Accept Booking
-            </motion.button>
-            <motion.button whileTap={{ scale: 0.97 }} onClick={handleDecline}
-              style={{
-                width: '100%', background: 'transparent', color: 'var(--text-muted)',
-                border: '1.5px solid var(--border-strong)',
-                borderRadius: 'var(--radius-md)', padding: '14px', fontSize: 15, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'Outfit, sans-serif'
-              }}>
+                flex: 1,
+                height: 44,
+                borderRadius: 12,
+                background: 'transparent',
+                border: '1.5px solid var(--text)',
+                color: 'var(--text)',
+                fontWeight: 600,
+                fontSize: 15,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)'
+              }}
+            >
               Decline
-            </motion.button>
+            </button>
+            <button
+              onClick={handleAccept}
+              style={{
+                flex: 1,
+                height: 44,
+                borderRadius: 12,
+                background: themeColor,
+                border: 'none',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: 15,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                boxShadow: `0 4px 12px ${isTeal ? 'rgba(13,148,136,0.3)' : 'rgba(255,107,43,0.3)'}`
+              }}
+            >
+              Accept
+            </button>
           </div>
         </motion.div>
       )}

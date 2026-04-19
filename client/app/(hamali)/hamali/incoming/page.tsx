@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import api from '@/lib/api'
-import { getSocket } from '@/lib/socket'
+import { ensureArray } from '@/lib/ensureArray'
+import { socket } from '@/lib/socket'
 import toast from 'react-hot-toast'
 import BookingRequestCard from '@/components/BookingRequestCard'
 import EmptyState from '@/components/ui/EmptyState'
@@ -18,7 +19,7 @@ export default function HamaliIncomingPage() {
     const init = async () => {
       try {
         const res = await api.get('/api/hamali/incoming')
-        setBookings(res.data.bookings || [])
+        setBookings(ensureArray<any>(res.data?.bookings ?? res.data?.data?.bookings ?? res.data?.data ?? res.data))
       } catch {
         // handled by interceptor
       } finally {
@@ -27,7 +28,6 @@ export default function HamaliIncomingPage() {
     }
     init()
 
-    const socket = getSocket()
     socket.on('booking:new', (data: any) => {
       const booking = data.booking || data
       setBookings(prev => {
@@ -71,7 +71,7 @@ export default function HamaliIncomingPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <div className="p-4 max-w-lg mx-auto">
+      <div className="page-shell compact">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}

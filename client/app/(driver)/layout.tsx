@@ -1,13 +1,6 @@
 'use client'
-import BottomNav from '@/components/BottomNav'
-import { usePathname } from 'next/navigation'
+import AppShell from '@/components/AppShell'
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: '80px' }}>
-      {children}
-      <BottomNav role="driver" activePath={pathname} />
-    </div>
-  )
+  return <AppShell role="driver">{children}</AppShell>
 }

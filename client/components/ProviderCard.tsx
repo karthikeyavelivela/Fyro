@@ -40,7 +40,7 @@ export default function ProviderCard({ provider, selected, onSelect, bookingType
       onClick={onSelect}
       style={{
         background: 'var(--surface)',
-        borderRadius: 'var(--radius-md)',
+        borderRadius: 16,
         padding: '16px',
         border: `1.5px solid ${selected ? accentColor : 'var(--border)'}`,
         boxShadow: selected ? `0 0 0 3px ${isHamali ? 'rgba(13,148,136,0.15)' : 'rgba(255,107,43,0.15)'}` : 'var(--shadow-sm)',
@@ -66,7 +66,7 @@ export default function ProviderCard({ provider, selected, onSelect, bookingType
         <Avatar name={name} src={provider.userId?.photo} size="md" />
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16 }}>{name}</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>{name}</span>
             {isKYC && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 3, background: accentLight, color: accentColor, fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 999 }}>
                 <CheckCircle size={10} /> Verified
@@ -115,7 +115,7 @@ export default function ProviderCard({ provider, selected, onSelect, bookingType
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {provider.estimatedFare !== undefined && (
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, color: accentColor }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: accentColor }}>
               ₹{provider.estimatedFare}
             </span>
           )}
@@ -126,8 +126,8 @@ export default function ProviderCard({ provider, selected, onSelect, bookingType
               background: selected ? accentColor : 'transparent',
               color: selected ? 'white' : accentColor,
               border: `1.5px solid ${accentColor}`,
-              padding: '8px 16px', borderRadius: 'var(--radius-sm)',
-              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif'
+              padding: '8px 18px', borderRadius: 999,
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)'
             }}>
             {selected ? 'Selected' : 'Select'}
           </motion.button>

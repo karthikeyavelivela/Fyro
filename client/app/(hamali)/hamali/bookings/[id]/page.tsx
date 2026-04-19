@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { fadeUp, springPop } from '@/lib/animations'
 import api from '@/lib/api'
-import { getSocket } from '@/lib/socket'
+import { socket } from '@/lib/socket'
 import toast from 'react-hot-toast'
 import { useParams, useRouter } from 'next/navigation'
 import StatusTimeline from '@/components/StatusTimeline'
@@ -41,7 +41,6 @@ export default function HamaliBookingDetailPage() {
     }
     load()
 
-    const socket = getSocket()
     socket.emit('join:booking', { bookingId })
     socket.on('booking:status_update', ({ status, booking: updated }: any) => {
       setBooking((prev: any) => ({ ...prev, status, ...(updated || {}) }))
@@ -117,7 +116,7 @@ export default function HamaliBookingDetailPage() {
         </div>
       </div>
 
-      <div className="p-4 space-y-4 max-w-lg mx-auto">
+      <div className="page-shell compact page-stack">
         {/* Customer info — shown after acceptance */}
         {(booking.status === 'accepted' || booking.status === 'in_progress' || booking.status === 'completed') && (
           <motion.div

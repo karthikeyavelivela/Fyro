@@ -1,22 +1,30 @@
 'use client'
+
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { Bell, Truck, Package, List, RefreshCcw, FileText, Gift, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
-import { getSocket } from '@/lib/socket'
-import { fadeUp, staggerContainer } from '@/lib/animations'
-import BookingCard from '@/components/BookingCard'
+import { socket } from '@/lib/socket'
 import Skeleton from '@/components/ui/Skeleton'
 import Badge from '@/components/ui/Badge'
-import { Truck, Users, ChevronRight, MapPin } from 'lucide-react'
+import { fadeUp, staggerContainer } from '@/lib/animations'
 
 function greeting() {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
   return 'Good evening'
+}
+
+function initials(name: string) {
+  return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+}
+
+function toArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : []
 }
 
 export default function DashboardPage() {
@@ -32,150 +40,218 @@ export default function DashboardPage() {
         const [meRes, activeRes, recentRes] = await Promise.all([
           api.get('/api/auth/me'),
           api.get('/api/bookings/my?status=in_progress&status=accepted&limit=1').catch(() => ({ data: { bookings: [] } })),
-          api.get('/api/bookings/my?limit=3').catch(() => ({ data: { bookings: [] } })),
+          api.get('/api/bookings/my?limit=4').catch(() => ({ data: { bookings: [] } })),
         ])
-        setUser(meRes.data?.user || meRes.data)
-        const ab = (activeRes.data?.bookings || activeRes.data)?.[0]
-        if (ab) setActiveBooking(ab)
-        setRecentBookings(recentRes.data?.bookings || recentRes.data || [])
-      } catch { toast.error('Failed to load dashboard') }
-      finally { setLoading(false) }
+
+        const me = meRes.data?.user || meRes.data?.data?.user || meRes.data
+        const activeList = toArray<any>(
+          activeRes.data?.bookings ?? activeRes.data?.data?.bookings ?? activeRes.data?.data ?? activeRes.data
+        )
+        const recentList = toArray<any>(
+          recentRes.data?.bookings ?? recentRes.data?.data?.bookings ?? recentRes.data?.data ?? recentRes.data
+        )
+
+        setUser(me)
+        setActiveBooking(activeList[0] || null)
+        setRecentBookings(recentList)
+      } catch {
+        toast.error('Failed to load dashboard')
+      } finally {
+        setLoading(false)
+      }
     }
+
     load()
+    socket.on('booking:accepted', () => {
+      toast.success('Your booking was accepted')
+      load()
+    })
 
-    const socket = getSocket()
-    socket.on('booking:accepted', () => { toast.success('Your booking was accepted!'); load() })
-    socket.on('connect', () => { if (user?._id) socket.emit('join:user', user._id) })
-
-    return () => { socket.off('booking:accepted') }
+    return () => {
+      socket.off('booking:accepted')
+    }
   }, [])
 
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })
+  const quickActions = [
+    { icon: List, label: 'Schedule' },
+    { icon: RefreshCcw, label: 'Repeat' },
+    { icon: FileText, label: 'Invoices' },
+    { icon: Gift, label: 'Refer' },
+  ]
 
   return (
-    <motion.div variants={staggerContainer} initial="hidden" animate="show" style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
-
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+      style={{ padding: '16px 20px 120px', maxWidth: 460, margin: '0 auto' }}
+    >
       {/* Header */}
-      <motion.div variants={fadeUp} custom={0} style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 4 }}>{today}</div>
-        {loading ? (
-          <Skeleton height={32} width={200} />
-        ) : (
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 24 }}>
-            {greeting()}, {user?.name?.split(' ')[0] || 'there'}! 👋
-          </h1>
-        )}
+      <motion.div variants={fadeUp} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{greeting()},</div>
+          <div className="syne" style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em' }}>
+            {user?.name?.split(' ')[0] || 'there'}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', cursor: 'pointer' }}>
+            <Bell size={18} />
+            <span style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: 'var(--orange)', border: '2px solid #fff' }} />
+          </button>
+          <div style={{
+            width: 40, height: 40, borderRadius: '50%', background: 'var(--orange)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, fontSize: 15, fontFamily: 'var(--font-display)',
+          }}>{user?.name ? initials(user.name) : 'U'}</div>
+        </div>
       </motion.div>
 
-      {/* Active booking banner */}
+      {/* Active booking */}
       {activeBooking && (
-        <motion.div variants={fadeUp} custom={1}
+        <motion.div
+          variants={fadeUp}
           style={{
-            background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '16px',
-            border: '1px solid var(--border)', borderLeft: '4px solid var(--accent)',
-            boxShadow: 'var(--shadow-md)', marginBottom: 24
-          }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 4 }}>Active Booking</div>
+            background: '#fff',
+            borderRadius: 16,
+            border: '1px solid var(--border-light)',
+            padding: 16,
+            marginTop: 16,
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: 'var(--shadow-md)',
+            cursor: 'pointer',
+          }}
+          onClick={() => router.push(`/bookings/${activeBooking._id}`)}
+        >
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--orange)' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginLeft: 8 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <Badge status={activeBooking.status} />
+              <div style={{ fontWeight: 600, fontSize: 14, marginTop: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {activeBooking.pickup?.address || activeBooking.workLocation?.address || 'Active booking'}
+              </div>
+              <div className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                #{(activeBooking.bookingId || activeBooking._id).slice(-8).toUpperCase()}
+              </div>
             </div>
-            {activeBooking.status === 'in_progress' && (
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 1.2s infinite', display: 'inline-block' }} />
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <MapPin size={14} color="var(--accent)" />
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>
-              {activeBooking.pickup?.address?.slice(0, 36) || activeBooking.workLocation?.address?.slice(0, 36)}…
-            </span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--accent)' }}>
-              ₹{activeBooking.totalFare}
-            </span>
-            <motion.button whileTap={{ scale: 0.96 }} onClick={() => router.push(`/bookings/${activeBooking._id}`)}
-              style={{ background: 'var(--accent)', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}>
-              Track Live
-            </motion.button>
+            <button style={{ color: 'var(--orange)', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+              Track <ArrowRight size={14} />
+            </button>
           </div>
         </motion.div>
       )}
 
-      {/* Quick Book */}
-      <motion.div variants={fadeUp} custom={2} style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, marginBottom: 14 }}>Quick Book</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {/* Truck */}
-          <Link href="/book?type=transport" style={{ textDecoration: 'none' }}>
-            <motion.div whileTap={{ scale: 0.98 }} whileHover={{ y: -3, boxShadow: 'var(--shadow-lg)' }}
-              style={{
-                background: 'linear-gradient(135deg, #FF6B2B 0%, #C94A10 100%)',
-                borderRadius: 'var(--radius-md)', padding: '20px 16px', minHeight: 160,
-                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                boxShadow: 'var(--shadow-md)', cursor: 'pointer'
-              }}>
-              <Truck size={28} color="white" />
-              <div>
-                <div style={{ color: 'white', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Book a Truck</div>
-                <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, lineHeight: 1.4 }}>Move goods across the city</div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <ChevronRight size={18} color="rgba(255,255,255,0.8)" />
-              </div>
-            </motion.div>
-          </Link>
-
-          {/* Hamali */}
-          <Link href="/book?type=hamali" style={{ textDecoration: 'none' }}>
-            <motion.div whileTap={{ scale: 0.98 }} whileHover={{ y: -3, boxShadow: 'var(--shadow-lg)' }}
-              style={{
-                background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
-                borderRadius: 'var(--radius-md)', padding: '20px 16px', minHeight: 160,
-                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                boxShadow: 'var(--shadow-md)', cursor: 'pointer'
-              }}>
-              <Users size={28} color="white" />
-              <div>
-                <div style={{ color: 'white', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Book Hamali</div>
-                <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, lineHeight: 1.4 }}>Loading/unloading services</div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <ChevronRight size={18} color="rgba(255,255,255,0.8)" />
-              </div>
-            </motion.div>
-          </Link>
-        </div>
+      {/* Book now */}
+      <motion.div variants={fadeUp} className="syne" style={{ fontSize: 18, fontWeight: 700, marginTop: 24 }}>Book now</motion.div>
+      <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+        <Link href="/book?type=transport" style={{ textDecoration: 'none' }}>
+          <button style={{
+            width: '100%', height: 120, borderRadius: 20, background: 'var(--orange)', color: '#fff',
+            position: 'relative', overflow: 'hidden', textAlign: 'left', padding: '20px 22px',
+            border: 'none', cursor: 'pointer'
+          }}>
+            <div className="syne" style={{ fontSize: 22, fontWeight: 700 }}>Book a Truck</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Transport goods instantly</div>
+            <Truck size={88} color="rgba(255,255,255,0.25)" style={{ position: 'absolute', right: -8, bottom: -12 }} />
+            <ArrowRight size={20} color="#fff" style={{ position: 'absolute', right: 18, bottom: 18 }} />
+          </button>
+        </Link>
+        <Link href="/book?type=hamali" style={{ textDecoration: 'none' }}>
+          <button style={{
+            width: '100%', height: 120, borderRadius: 20, background: 'var(--teal)', color: '#fff',
+            position: 'relative', overflow: 'hidden', textAlign: 'left', padding: '20px 22px',
+            border: 'none', cursor: 'pointer'
+          }}>
+            <div className="syne" style={{ fontSize: 22, fontWeight: 700 }}>Book Hamali</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Loading & unloading workers</div>
+            <Package size={88} color="rgba(255,255,255,0.25)" style={{ position: 'absolute', right: -8, bottom: -12 }} />
+            <ArrowRight size={20} color="#fff" style={{ position: 'absolute', right: 18, bottom: 18 }} />
+          </button>
+        </Link>
       </motion.div>
 
-      {/* Recent Trips */}
-      <motion.div variants={fadeUp} custom={3}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>Recent Trips</h2>
-          <Link href="/bookings" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
-            See all →
-          </Link>
-        </div>
+      {/* Quick actions */}
+      <motion.div variants={fadeUp} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 20 }}>
+        {quickActions.map(qa => (
+          <button key={qa.label} style={{
+            background: '#fff', borderRadius: 14, padding: '14px 8px',
+            border: '1px solid var(--border-light)', display: 'flex',
+            flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer'
+          }}>
+            <qa.icon size={18} color="var(--orange)" />
+            <span style={{ fontSize: 11, fontWeight: 500 }}>{qa.label}</span>
+          </button>
+        ))}
+      </motion.div>
+
+      {/* Recent trips */}
+      <motion.div variants={fadeUp} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 24 }}>
+        <div className="syne" style={{ fontSize: 18, fontWeight: 700 }}>Recent trips</div>
+        <Link href="/bookings" style={{ fontSize: 13, color: 'var(--orange)', fontWeight: 600, textDecoration: 'none' }}>
+          See all
+        </Link>
+      </motion.div>
+
+      <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[1, 2, 3].map(i => <Skeleton key={i} height={100} style={{ borderRadius: 'var(--radius-md)' }} />)}
-          </div>
+          [1, 2, 3].map(i => <Skeleton key={i} height={72} style={{ borderRadius: 16 }} />)
         ) : recentBookings.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>
-            <div style={{ fontWeight: 500 }}>No trips yet</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>Book your first truck or hamali service above</div>
+          <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)', fontSize: 14, background: '#fff', borderRadius: 16, border: '1px dashed var(--border-light)' }}>
+            No recent trips yet
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {recentBookings.map(b => <BookingCard key={b._id} booking={b} />)}
-          </div>
+          recentBookings.map(b => {
+            const isHamali = b.bookingType === 'hamali'
+            const route = isHamali
+              ? (b.workLocation?.address || 'Hamali service')
+              : `${b.pickup?.address?.split(',')[0] || 'Pickup'} → ${b.dropoff?.address?.split(',')[0] || 'Dropoff'}`
+            return (
+              <div
+                key={b._id}
+                onClick={() => router.push(`/bookings/${b._id}`)}
+                style={{
+                  background: '#fff',
+                  borderRadius: 16,
+                  border: '1px solid var(--border-light)',
+                  padding: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: isHamali ? 'var(--teal-light)' : 'var(--orange-light)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  {isHamali
+                    ? <Package size={18} color="var(--teal)" />
+                    : <Truck size={18} color="var(--orange)" />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {route}
+                  </div>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    #{(b.bookingId || b._id).slice(-8).toUpperCase()}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="syne mono" style={{ fontSize: 15, fontWeight: 700, color: 'var(--orange)' }}>
+                    ₹{b.totalFare || 0}
+                  </div>
+                  <div style={{ marginTop: 2 }}>
+                    <Badge status={b.status} />
+                  </div>
+                </div>
+              </div>
+            )
+          })
         )}
       </motion.div>
-
-      <style jsx global>{`
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-      `}</style>
     </motion.div>
   )
 }

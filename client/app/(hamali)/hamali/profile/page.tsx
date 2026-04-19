@@ -72,7 +72,7 @@ export default function HamaliProfilePage() {
       variants={staggerContainer}
       initial="hidden"
       animate="show"
-      className="min-h-screen p-4 max-w-lg mx-auto"
+      className="page-shell compact page-stack"
       style={{ background: 'var(--bg)' }}
     >
       {/* Header */}

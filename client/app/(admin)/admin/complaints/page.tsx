@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import api from '@/lib/api'
+import { ensureArray } from '@/lib/ensureArray'
 import toast from 'react-hot-toast'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -25,7 +26,7 @@ export default function AdminComplaintsPage() {
       const params = new URLSearchParams({ page: String(page), limit: '10' })
       if (statusFilter !== 'all') params.set('status', statusFilter)
       const res = await api.get(`/api/admin/complaints?${params}`)
-      setComplaints(res.data.complaints || [])
+      setComplaints(ensureArray<any>(res.data?.complaints ?? res.data?.data?.complaints ?? res.data?.data ?? res.data))
     } catch {}
     finally { setLoading(false) }
   }

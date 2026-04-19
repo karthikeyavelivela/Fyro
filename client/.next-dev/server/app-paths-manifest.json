@@ -1,0 +1,7 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/(driver)/driver/incoming/page": "app/(driver)/driver/incoming/page.js",
+  "/(driver)/driver/page": "app/(driver)/driver/page.js",
+  "/(driver)/driver/earnings/page": "app/(driver)/driver/earnings/page.js",
+  "/(driver)/driver/profile/page": "app/(driver)/driver/profile/page.js"
+}

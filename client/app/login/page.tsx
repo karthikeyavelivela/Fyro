@@ -1,12 +1,12 @@
 'use client'
+
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { Eye, EyeOff, ArrowRight, Phone, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
-import { Eye, EyeOff } from 'lucide-react'
-import { fadeUp, staggerContainer } from '@/lib/animations'
 
 const ROLE_HOME: Record<string, string> = {
   customer: '/dashboard',
@@ -21,15 +21,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [lang, setLang] = useState<'en' | 'hi' | 'te'>('en')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!identifier || !password) { toast.error('Please fill in all fields'); return }
+    if (!identifier || !password) {
+      toast.error('Please fill in all fields')
+      return
+    }
+
     setLoading(true)
     try {
       const { data } = await api.post('/api/auth/login', { identifier, password })
-      toast.success('Welcome back!')
-      router.push(ROLE_HOME[data.user?.role] || '/dashboard')
+      const loggedInUser = data?.user || data?.data?.user
+      toast.success('Welcome back')
+      router.push(ROLE_HOME[loggedInUser?.role] || '/dashboard')
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Login failed. Please try again.')
     } finally {
@@ -37,91 +43,170 @@ export default function LoginPage() {
     }
   }
 
+  const langs: { id: 'en' | 'hi' | 'te'; l: string }[] = [
+    { id: 'en', l: 'English' },
+    { id: 'hi', l: 'हिंदी' },
+    { id: 'te', l: 'తెలుగు' },
+  ]
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <motion.div variants={staggerContainer} initial="hidden" animate="show"
-        style={{ width: '100%', maxWidth: 400 }}>
-
-        {/* Logo */}
-        <motion.div variants={fadeUp} custom={0} style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 10, background: 'var(--accent)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'Syne, sans-serif', fontWeight: 800, color: 'white', fontSize: 22
-            }}>F</div>
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 24 }}>FYRO</span>
-          </div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 28, marginBottom: 6 }}>Welcome back</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Sign in to your account</p>
-        </motion.div>
-
-        <motion.form variants={fadeUp} custom={1} onSubmit={handleSubmit}
-          style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', padding: 28, boxShadow: 'var(--shadow-md)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-          <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'var(--text)' }}>Phone or Email</label>
-            <input
-              value={identifier} onChange={e => setIdentifier(e.target.value)}
-              placeholder="9876543210 or you@example.com"
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 460, width: '100%', margin: '0 auto' }}>
+        <button
+          onClick={() => router.back()}
+          style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {langs.map(x => (
+            <button
+              key={x.id}
+              onClick={() => setLang(x.id)}
               style={{
-                width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)',
-                borderRadius: 'var(--radius-sm)', padding: '14px 16px', fontSize: 16, color: 'var(--text)',
-                outline: 'none', transition: 'border-color 0.2s', fontFamily: 'Outfit, sans-serif'
+                padding: '6px 12px',
+                borderRadius: 999,
+                background: lang === x.id ? 'var(--orange)' : '#fff',
+                color: lang === x.id ? '#fff' : 'var(--text-muted)',
+                border: `1px solid ${lang === x.id ? 'var(--orange)' : 'var(--border-light)'}`,
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: 'pointer',
               }}
-              onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-              onBlur={e => e.target.style.borderColor = 'var(--border-strong)'}
-            />
-          </div>
+            >{x.l}</button>
+          ))}
+        </div>
+      </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'var(--text)' }}>Password</label>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          style={{
+            width: '100%',
+            maxWidth: 420,
+            background: '#fff',
+            borderRadius: 24,
+            padding: 32,
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--border-light)',
+          }}
+        >
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-0.04em' }}>FYRO</span>
+          <h1 className="syne" style={{ fontSize: 28, fontWeight: 700, margin: '18px 0 4px', letterSpacing: '-0.02em' }}>Welcome back</h1>
+          <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>Sign in to your account</div>
+
+          <form onSubmit={handleSubmit} style={{ marginTop: 28 }}>
+            <label style={{ fontWeight: 500, fontSize: 13, color: 'var(--text)', marginBottom: 6, display: 'block' }}>Email or Phone</label>
+            <input
+              value={identifier}
+              onChange={e => setIdentifier(e.target.value)}
+              placeholder="you@example.com"
+              style={{
+                width: '100%',
+                height: 52,
+                borderRadius: 12,
+                border: '1px solid var(--border-light)',
+                background: 'var(--bg)',
+                padding: '0 16px',
+                fontSize: 16,
+                outline: 'none',
+                color: 'var(--text)',
+              }}
+            />
+
+            <label style={{ fontWeight: 500, fontSize: 13, color: 'var(--text)', marginBottom: 6, display: 'block', marginTop: 14 }}>Password</label>
             <div style={{ position: 'relative' }}>
               <input
                 type={showPass ? 'text' : 'password'}
-                value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Enter password"
                 style={{
-                  width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)',
-                  borderRadius: 'var(--radius-sm)', padding: '14px 48px 14px 16px', fontSize: 16, color: 'var(--text)',
-                  outline: 'none', transition: 'border-color 0.2s', fontFamily: 'Outfit, sans-serif'
+                  width: '100%',
+                  height: 52,
+                  borderRadius: 12,
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--bg)',
+                  padding: '0 44px 0 16px',
+                  fontSize: 16,
+                  outline: 'none',
+                  color: 'var(--text)',
                 }}
-                onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                onBlur={e => e.target.style.borderColor = 'var(--border-strong)'}
               />
-              <button type="button" onClick={() => setShowPass(!showPass)}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+              <button
+                type="button"
+                onClick={() => setShowPass(!showPass)}
+                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}
+              >
                 {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            <div style={{ textAlign: 'right', marginTop: 8 }}>
+              <a style={{ fontSize: 13, color: 'var(--orange)', fontWeight: 500, cursor: 'pointer' }}>Forgot password?</a>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                height: 52,
+                marginTop: 22,
+                background: 'var(--orange)',
+                color: '#fff',
+                borderRadius: 999,
+                border: 'none',
+                fontSize: 15,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.7 : 1,
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              {loading ? 'Signing in...' : <>Sign in <ArrowRight size={16} /></>}
+            </button>
+          </form>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0', color: 'var(--text-faint)', fontSize: 12 }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--divider)' }} /> or <div style={{ flex: 1, height: 1, background: 'var(--divider)' }} />
           </div>
 
-          <div style={{ textAlign: 'right' }}>
-            <Link href="#" style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>Forgot password?</Link>
-          </div>
-
-          <motion.button type="submit" disabled={loading}
-            whileHover={{ y: -2, boxShadow: 'var(--shadow-md)' }} whileTap={{ scale: 0.97 }}
+          <button
+            type="button"
             style={{
-              width: '100%', background: 'var(--accent)', color: 'white', border: 'none',
-              borderRadius: 'var(--radius-md)', padding: '18px', fontSize: 16, fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
-              fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-            }}>
-            {loading ? (
-              <><span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Signing in...</>
-            ) : 'Login'}
-          </motion.button>
+              width: '100%',
+              height: 52,
+              borderRadius: 999,
+              background: 'transparent',
+              color: 'var(--text)',
+              border: '1px solid var(--border-light)',
+              fontSize: 15,
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
+            <Phone size={16} /> Continue with OTP
+          </button>
 
-          <div style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-muted)' }}>
+          <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
             New to FYRO?{' '}
-            <Link href="/register" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Register</Link>
+            <Link href="/register" style={{ color: 'var(--orange)', fontWeight: 600, textDecoration: 'none' }}>
+              Register
+            </Link>
           </div>
-        </motion.form>
-      </motion.div>
-      <style jsx global>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+        </motion.div>
+      </div>
     </div>
   )
 }

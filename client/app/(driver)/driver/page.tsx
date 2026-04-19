@@ -1,15 +1,21 @@
 'use client'
+
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { fadeUp, staggerContainer, springPop } from '@/lib/animations'
-import api from '@/lib/api'
-import { getSocket } from '@/lib/socket'
+import { Navigation, TrendingUp, ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import api from '@/lib/api'
+import { ensureArray } from '@/lib/ensureArray'
+import { socket } from '@/lib/socket'
 import AvailabilityToggle from '@/components/AvailabilityToggle'
 import EarningsChart from '@/components/EarningsChart'
-import BookingCard from '@/components/BookingCard'
-import { useRouter } from 'next/navigation'
-import { MapPin, Navigation, CheckCircle, TrendingUp, Star, Truck } from 'lucide-react'
+
+const ACCENT = 'var(--orange)'
+const ACCENT_LIGHT = 'var(--orange-light)'
+const ACCENT_BORDER = 'var(--orange-border)'
+const ACCENT_DARK = 'var(--orange-dark)'
 
 export default function DriverHomePage() {
   const router = useRouter()
@@ -18,57 +24,72 @@ export default function DriverHomePage() {
   const [availabilityLoading, setAvailabilityLoading] = useState(false)
   const [earnings, setEarnings] = useState<any>(null)
   const [activeBooking, setActiveBooking] = useState<any>(null)
-  const [recentBookings, setRecentBookings] = useState<any[]>([])
+  const [incoming, setIncoming] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [meRes, earningsRes, bookingsRes] = await Promise.all([
+        const [meResult, earningsResult, incomingResult, vehicleResult] = await Promise.allSettled([
           api.get('/api/auth/me'),
           api.get('/api/driver/earnings'),
-          api.get('/api/driver/bookings?limit=5')
+          api.get('/api/driver/incoming'),
+          api.get('/api/driver/vehicles/mine'),
         ])
-        setUser(meRes.data.user)
-        setEarnings(earningsRes.data)
-        setRecentBookings(bookingsRes.data.bookings || [])
 
-        // Get vehicle availability
-        const vehicleRes = await api.get('/api/vehicles/mine')
-        if (vehicleRes.data.vehicle) {
-          setIsAvailable(vehicleRes.data.vehicle.isAvailable)
+        if (meResult.status === 'fulfilled') {
+          setUser(meResult.value.data?.user || meResult.value.data?.data?.user || null)
         }
 
-        // Check active booking
-        const activeRes = await api.get('/api/driver/bookings?status=in_progress&limit=1')
-        if (activeRes.data.bookings?.[0]) {
-          setActiveBooking(activeRes.data.bookings[0])
+        if (earningsResult.status === 'fulfilled') {
+          setEarnings(earningsResult.value.data?.earnings || earningsResult.value.data)
         } else {
-          const acceptedRes = await api.get('/api/driver/bookings?status=accepted&limit=1')
-          if (acceptedRes.data.bookings?.[0]) setActiveBooking(acceptedRes.data.bookings[0])
+          setEarnings({ today: 0, thisWeek: 0, todayTrips: 0, last7days: [] })
         }
-      } catch (err) {
-        // handled by interceptor
+
+        if (incomingResult.status === 'fulfilled') {
+          const incomingList = ensureArray<any>(
+            incomingResult.value.data?.bookings ?? incomingResult.value.data?.data?.bookings ?? incomingResult.value.data?.data ?? incomingResult.value.data
+          )
+          setIncoming(incomingList.slice(0, 2))
+        } else {
+          setIncoming([])
+        }
+
+        if (vehicleResult.status === 'fulfilled') {
+          setIsAvailable(Boolean(vehicleResult.value.data?.vehicle?.isAvailable))
+        } else {
+          setIsAvailable(false)
+        }
+
+        try {
+          const activeRes = await api.get('/api/driver/bookings?status=in_progress&limit=1')
+          if (activeRes.data.bookings?.[0]) {
+            setActiveBooking(activeRes.data.bookings[0])
+          } else {
+            const acceptedRes = await api.get('/api/driver/bookings?status=accepted&limit=1')
+            setActiveBooking(acceptedRes.data.bookings?.[0] || null)
+          }
+        } catch {
+          setActiveBooking(null)
+        }
+      } catch {
+        toast.error('Failed to load driver dashboard')
       } finally {
         setLoading(false)
       }
     }
     load()
-
-    const socket = getSocket()
-    if (user?.id) socket.emit('join:user', { userId: user.id })
-    socket.on('booking:new', () => {
-      toast('New booking request!', { icon: '🚛' })
-    })
+    socket.on('booking:new', () => toast('New booking request available'))
     return () => { socket.off('booking:new') }
   }, [])
 
-  const toggleAvailability = async (val: boolean) => {
+  const toggleAvailability = async (value: boolean) => {
     setAvailabilityLoading(true)
     try {
-      await api.put('/api/driver/availability', { isAvailable: val })
-      setIsAvailable(val)
-      toast.success(val ? 'You are now online' : 'You are now offline')
+      await api.put('/api/driver/availability', { isAvailable: value })
+      setIsAvailable(value)
+      toast.success(value ? 'You are now online' : 'You are now offline')
     } catch {
       toast.error('Failed to update availability')
     } finally {
@@ -79,166 +100,187 @@ export default function DriverHomePage() {
   const completeTrip = async (bookingId: string) => {
     try {
       await api.put(`/api/driver/bookings/${bookingId}/complete`)
-      toast.success('Trip completed!')
+      toast.success('Trip completed')
       setActiveBooking(null)
     } catch {
       toast.error('Failed to complete trip')
     }
   }
 
-  const getGreeting = () => {
-    const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 17) return 'Good afternoon'
-    return 'Good evening'
-  }
-
   if (loading) {
     return (
-      <div className="p-4 space-y-4">
-        <div className="shimmer h-16 rounded-md" />
-        <div className="shimmer h-32 rounded-md" />
-        <div className="shimmer h-48 rounded-md" />
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="shimmer" style={{ height: 56, borderRadius: 14 }} />
+        <div className="shimmer" style={{ height: 120, borderRadius: 20 }} />
+        <div className="shimmer" style={{ height: 140, borderRadius: 16 }} />
+        <div className="shimmer" style={{ height: 180, borderRadius: 16 }} />
       </div>
     )
   }
 
   return (
     <motion.div
-      variants={staggerContainer}
-      initial="hidden"
-      animate="show"
-      className="p-4 space-y-4 max-w-lg mx-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      style={{ padding: '16px 20px 100px', maxWidth: 560, margin: '0 auto', background: 'var(--bg)' }}
     >
-      {/* Header */}
-      <motion.div variants={fadeUp} className="flex items-center justify-between pt-2">
+      {/* Greeting + online toggle */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="font-syne font-700 text-2xl" style={{ color: 'var(--text)' }}>
-            {getGreeting()},
-          </h1>
-          <h2 className="font-syne font-800 text-2xl" style={{ color: 'var(--accent)' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Hi,</div>
+          <div className="syne" style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>
             {user?.name?.split(' ')[0] || 'Driver'}
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
+          </div>
         </div>
-        <AvailabilityToggle
-          isAvailable={isAvailable}
-          onChange={toggleAvailability}
-          loading={availabilityLoading}
-        />
-      </motion.div>
+        <AvailabilityToggle isAvailable={isAvailable} onChange={toggleAvailability} loading={availabilityLoading} />
+      </div>
 
-      {/* Today's stats */}
-      <motion.div variants={springPop} className="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Today', value: `₹${earnings?.today || 0}`, icon: TrendingUp },
-          { label: 'Trips', value: earnings?.todayTrips || 0, icon: Truck },
-          { label: 'Rating', value: user?.rating?.toFixed(1) || '5.0', icon: Star },
-        ].map(({ label, value, icon: Icon }) => (
-          <div
-            key={label}
-            className="rounded-md p-3 text-center"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-          >
-            <Icon size={18} style={{ color: 'var(--accent)', margin: '0 auto 6px' }} />
-            <div className="font-syne font-700 text-lg" style={{ color: 'var(--text)' }}>{value}</div>
-            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</div>
-          </div>
-        ))}
-      </motion.div>
+      {/* Today's earnings card */}
+      <div style={{
+        marginTop: 18,
+        padding: 24,
+        background: '#fff',
+        borderRadius: 20,
+        border: '1px solid var(--border-light)',
+        boxShadow: 'var(--shadow-md)'
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          Today&apos;s earnings
+        </div>
+        <div className="syne" style={{ fontSize: 44, fontWeight: 800, color: ACCENT, letterSpacing: '-0.02em', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+          ₹{Number(earnings?.today || 0).toLocaleString('en-IN')}
+        </div>
+        <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 13, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+          <div><strong style={{ color: 'var(--text)' }}>{earnings?.todayTrips || 0}</strong> trips completed</div>
+          <div>· <strong style={{ color: 'var(--text)' }}>{user?.rating?.toFixed(1) || '5.0'} ★</strong></div>
+        </div>
+      </div>
 
-      {/* Active booking */}
+      {/* Active trip */}
       {activeBooking && (
-        <motion.div
-          variants={springPop}
-          className="rounded-md p-4 space-y-3"
-          style={{
-            background: 'var(--accent-light)',
-            border: '2px solid var(--accent)',
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="font-syne font-700 text-sm" style={{ color: 'var(--accent)' }}>
-              ACTIVE TRIP
-            </span>
-            <span
-              className="text-xs px-2 py-1 rounded-full font-500"
-              style={{ background: 'var(--accent)', color: 'white' }}
-            >
-              {activeBooking.status.replace('_', ' ')}
-            </span>
+        <div style={{
+          marginTop: 14,
+          padding: 16,
+          background: ACCENT_LIGHT,
+          borderRadius: 16,
+          border: `1px solid ${ACCENT_BORDER}`
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: ACCENT_DARK }}>
+            ACTIVE TRIP · {activeBooking.status.replace('_', ' ').toUpperCase()}
           </div>
-
-          <div className="space-y-1">
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin size={14} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
-              <span style={{ color: 'var(--text)' }} className="line-clamp-1">{activeBooking.pickup?.address}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
+              {activeBooking.customerId?.name || 'Customer'}
             </div>
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin size={14} style={{ color: 'var(--text-muted)', marginTop: 2, flexShrink: 0 }} />
-              <span style={{ color: 'var(--text-muted)' }} className="line-clamp-1">{activeBooking.dropoff?.address}</span>
+            <div className="syne mono" style={{ fontWeight: 800, fontSize: 18, color: ACCENT, fontVariantNumeric: 'tabular-nums' }}>
+              ₹{Number(activeBooking.totalFare || activeBooking.finalFare || activeBooking.estimatedFare || 0).toLocaleString('en-IN')}
             </div>
           </div>
-
-          <div className="flex gap-2">
+          <div style={{ fontSize: 13, marginTop: 4, color: 'var(--text)' }}>
+            {activeBooking.pickup?.address?.substring(0, 22) || '—'} → {activeBooking.dropoff?.address?.substring(0, 22) || '—'}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <button
               onClick={() => window.open(`https://maps.google.com/?q=${activeBooking.pickup?.lat},${activeBooking.pickup?.lng}`, '_blank')}
-              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-sm text-sm font-500"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border-strong)', color: 'var(--text)' }}
+              style={{
+                flex: 1, height: 42, borderRadius: 999, background: '#fff',
+                border: '1px solid rgba(26,25,22,0.1)', color: 'var(--text)',
+                fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'var(--font-body)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6
+              }}
             >
               <Navigation size={14} /> Navigate
             </button>
-            {activeBooking.status === 'in_progress' && (
+            {activeBooking.status === 'in_progress' ? (
               <button
                 onClick={() => completeTrip(activeBooking._id)}
-                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-sm text-sm font-500 text-white"
-                style={{ background: 'var(--green)' }}
+                style={{
+                  flex: 1, height: 42, borderRadius: 999, background: 'var(--green)',
+                  border: 'none', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'var(--font-body)'
+                }}
               >
-                <CheckCircle size={14} /> Complete
+                Complete Trip
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push(`/driver/bookings/${activeBooking._id}`)}
+                style={{
+                  flex: 1, height: 42, borderRadius: 999, background: 'var(--dark)',
+                  border: 'none', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'var(--font-body)'
+                }}
+              >
+                View details
               </button>
             )}
-            <button
-              onClick={() => router.push(`/driver/bookings/${activeBooking._id}`)}
-              className="flex-1 py-2 rounded-sm text-sm font-500"
-              style={{ background: 'var(--accent)', color: 'white' }}
-            >
-              View Details
-            </button>
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Earnings chart */}
+      {/* Incoming preview */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 22 }}>
+        <div className="syne" style={{ fontWeight: 700, fontSize: 17, color: 'var(--text)' }}>Incoming requests</div>
+        <Link href="/driver/incoming" style={{ fontSize: 12, color: ACCENT, fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          See all {incoming.length ? `(${incoming.length})` : ''} <ArrowRight size={12} />
+        </Link>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+        {incoming.length === 0 && (
+          <div style={{
+            padding: 18, background: '#fff', borderRadius: 16,
+            border: '1px solid var(--border-light)', color: 'var(--text-muted)',
+            fontSize: 13, textAlign: 'center'
+          }}>
+            {isAvailable ? 'Waiting for new trips...' : 'Go online to receive trip requests'}
+          </div>
+        )}
+        {incoming.map((b: any) => {
+          const route = `${b.pickup?.address?.substring(0, 18) || '—'} → ${b.dropoff?.address?.substring(0, 18) || '—'}`
+          return (
+            <Link key={b._id} href={`/driver/incoming`} style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: 12, background: '#fff', borderRadius: 16,
+                border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {route}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                      {b.distanceKm ? `${b.distanceKm.toFixed(1)} km` : ''}{b.vehicleType ? ` · ${b.vehicleType.replace(/_/g, ' ')}` : ''}
+                    </div>
+                  </div>
+                  <div className="syne mono" style={{ fontWeight: 800, color: ACCENT, fontSize: 17, marginLeft: 10, fontVariantNumeric: 'tabular-nums' }}>
+                    ₹{Number(b.totalFare || b.estimatedFare || 0).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+
+      {/* Weekly chart */}
       {earnings?.last7days && (
-        <motion.div
-          variants={fadeUp}
-          className="rounded-md p-4"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-syne font-700 text-base" style={{ color: 'var(--text)' }}>This Week</h3>
-            <button
-              onClick={() => router.push('/driver/earnings')}
-              className="text-sm font-500"
-              style={{ color: 'var(--accent)' }}
-            >
-              View all →
-            </button>
+        <div style={{
+          marginTop: 18, padding: 20, background: '#fff',
+          borderRadius: 16, border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div>
+              <div className="syne" style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Last 7 days</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                Total: ₹{Number(earnings?.thisWeek || 0).toLocaleString('en-IN')}
+              </div>
+            </div>
+            <Link href="/driver/earnings" style={{ color: ACCENT }}>
+              <TrendingUp size={16} />
+            </Link>
           </div>
-          <EarningsChart data={earnings.last7days} />
-        </motion.div>
-      )}
-
-      {/* Recent bookings */}
-      {recentBookings.length > 0 && (
-        <motion.div variants={fadeUp}>
-          <h3 className="font-syne font-700 text-base mb-3" style={{ color: 'var(--text)' }}>Recent Trips</h3>
-          <div className="space-y-2">
-            {recentBookings.map((b) => <BookingCard key={b._id} booking={b} />)}
+          <div style={{ marginTop: 12 }}>
+            <EarningsChart data={earnings.last7days} color="#FF6B2B" />
           </div>
-        </motion.div>
+        </div>
       )}
     </motion.div>
   )

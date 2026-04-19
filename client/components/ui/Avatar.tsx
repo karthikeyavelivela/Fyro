@@ -3,7 +3,7 @@ import Image from 'next/image'
 
 interface Props {
   src?: string
-  name: string
+  name?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
@@ -22,11 +22,12 @@ function initials(name: string): string {
 
 export default function Avatar({ src, name, size = 'md' }: Props) {
   const px = SIZES[size]
+  const safeName = (name || 'FYRO User').trim() || 'FYRO User'
 
   if (src) {
     return (
       <div style={{ width: px, height: px, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-        <Image src={src} alt={name} width={px} height={px} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+        <Image src={src} alt={safeName} width={px} height={px} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
       </div>
     )
   }
@@ -34,11 +35,11 @@ export default function Avatar({ src, name, size = 'md' }: Props) {
   return (
     <div style={{
       width: px, height: px, borderRadius: '50%', flexShrink: 0,
-      background: hashColor(name), display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: 'white', fontFamily: 'Syne, sans-serif', fontWeight: 700,
+      background: hashColor(safeName), display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'white', fontFamily: 'var(--font-display)', fontWeight: 700,
       fontSize: px * 0.35
     }}>
-      {initials(name)}
+      {initials(safeName)}
     </div>
   )
 }

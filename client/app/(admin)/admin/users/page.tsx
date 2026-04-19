@@ -1,11 +1,9 @@
 'use client'
+
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { fadeUp, staggerContainer } from '@/lib/animations'
 import api from '@/lib/api'
+import { ensureArray } from '@/lib/ensureArray'
 import toast from 'react-hot-toast'
-import Badge from '@/components/ui/Badge'
-import EmptyState from '@/components/ui/EmptyState'
 import Avatar from '@/components/ui/Avatar'
 import { Search, CheckCircle, XCircle } from 'lucide-react'
 
@@ -21,12 +19,12 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ page: String(page), limit: '10' })
+      const params = new URLSearchParams({ page: String(page), limit: '15' })
       if (search) params.set('search', search)
       if (roleFilter !== 'all') params.set('role', roleFilter)
       if (kycFilter !== 'all') params.set('kyc', kycFilter)
       const res = await api.get(`/api/admin/users?${params}`)
-      setUsers(res.data.users || [])
+      setUsers(ensureArray<any>(res.data?.users ?? res.data?.data?.users ?? res.data?.data ?? res.data))
       setTotalPages(res.data.pages || 1)
     } catch {}
     finally { setLoading(false) }
@@ -57,160 +55,164 @@ export default function AdminUsersPage() {
   }
 
   const rolePills = ['all', 'customer', 'driver', 'hamali', 'admin']
+  const kycPills = ['all', 'pending', 'approved']
+
+  const roleBadge = (role: string) => {
+    if (role === 'driver') return 'badge-orange'
+    if (role === 'hamali') return 'badge-teal'
+    if (role === 'admin') return 'badge-red'
+    return 'badge-accepted'
+  }
 
   return (
-    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="p-6">
-      <motion.div variants={fadeUp} className="mb-6">
-        <h1 className="font-syne font-800 text-2xl" style={{ color: 'var(--text)' }}>Users</h1>
-      </motion.div>
+    <>
+      <div className="admin-header">
+        <div>
+          <h1>Users</h1>
+          <div className="sub">Manage customers, drivers, hamali and admins</div>
+        </div>
+      </div>
 
-      {/* Filters */}
-      <motion.div variants={fadeUp} className="space-y-3 mb-4">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+      <div className="admin-filter-bar">
+        <div className="admin-search">
+          <Search size={14} />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name or phone..."
-            className="w-full pl-9 pr-4 py-3 rounded-md text-sm font-500"
-            style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border-strong)',
-              color: 'var(--text)',
-              fontSize: 16,
-              outline: 'none'
-            }}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or phone…"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {rolePills.map(r => (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {rolePills.map((r) => (
             <button
               key={r}
-              onClick={() => setRoleFilter(r)}
-              className="px-3 py-1.5 rounded-full text-sm font-500 whitespace-nowrap capitalize transition-colors"
-              style={{
-                background: roleFilter === r ? 'var(--accent)' : 'var(--surface)',
-                color: roleFilter === r ? 'white' : 'var(--text-muted)',
-                border: '1px solid var(--border-strong)',
-              }}
+              onClick={() => { setRoleFilter(r); setPage(1) }}
+              className={`admin-chip${roleFilter === r ? ' active' : ''}`}
+              style={{ textTransform: 'capitalize' }}
             >
               {r}
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
-          {['all', 'pending', 'approved'].map(k => (
+        <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+          {kycPills.map((k) => (
             <button
               key={k}
-              onClick={() => setKycFilter(k)}
-              className="px-3 py-1.5 rounded-full text-sm font-500 capitalize transition-colors"
-              style={{
-                background: kycFilter === k ? '#3B82F6' : 'var(--surface)',
-                color: kycFilter === k ? 'white' : 'var(--text-muted)',
-                border: '1px solid var(--border-strong)',
-              }}
+              onClick={() => { setKycFilter(k); setPage(1) }}
+              className={`admin-chip${kycFilter === k ? ' active-teal' : ''}`}
+              style={{ textTransform: 'capitalize' }}
             >
               KYC: {k}
             </button>
           ))}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Users list */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map(i => <div key={i} className="shimmer h-16 rounded-md" />)}
-        </div>
-      ) : users.length === 0 ? (
-        <EmptyState title="No users found" subtitle="Try adjusting your filters" />
-      ) : (
-        <motion.div variants={staggerContainer} className="space-y-2">
-          {users.map((u, i) => (
-            <motion.div
-              key={u._id}
-              variants={fadeUp}
-              custom={i}
-              className="rounded-md p-4 flex items-center gap-3"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-            >
-              <Avatar name={u.name} size="md" src={u.profilePhoto} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-500 text-sm" style={{ color: 'var(--text)' }}>{u.name}</p>
-                  <span
-                    className="text-xs px-2 py-0.5 rounded-full capitalize font-500"
-                    style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-                  >
-                    {u.role}
-                  </span>
-                  {!u.isKYCApproved && u.role !== 'customer' && (
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full font-500"
-                      style={{ background: '#FEF3C7', color: '#D97706' }}
-                    >
-                      KYC Pending
+      <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="shimmer" style={{ height: 48, borderRadius: 10 }} />
+            ))}
+          </div>
+        ) : users.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>No users found</div>
+            <div style={{ fontSize: 13 }}>Try adjusting your filters</div>
+          </div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th style={{ paddingLeft: 20 }}>Name</th>
+                <th>Role</th>
+                <th>Phone</th>
+                <th>KYC</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th style={{ textAlign: 'right', paddingRight: 20 }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u._id}>
+                  <td style={{ paddingLeft: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Avatar name={u.name} src={u.profilePhoto} size="sm" />
+                      <span style={{ fontWeight: 500 }}>{u.name}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`badge ${roleBadge(u.role)}`} style={{ fontSize: 9 }}>
+                      {u.role}
                     </span>
-                  )}
-                  {!u.isActive && (
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full font-500"
-                      style={{ background: '#FEE2E2', color: 'var(--red)' }}
-                    >
-                      Inactive
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  {u.phone} · Joined{' '}
-                  {new Date(u.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
-              </div>
-              <div className="flex items-center gap-1">
-                {!u.isKYCApproved && u.role !== 'customer' && u.role !== 'admin' && (
-                  <button
-                    onClick={() => approveKYC(u._id)}
-                    className="p-2 rounded-md"
-                    style={{ background: '#DCFCE7', color: 'var(--green)' }}
-                    title="Approve KYC"
-                  >
-                    <CheckCircle size={16} />
-                  </button>
-                )}
-                {u.isActive && u.role !== 'admin' && (
-                  <button
-                    onClick={() => deactivate(u._id)}
-                    className="p-2 rounded-md"
-                    style={{ background: '#FEE2E2', color: 'var(--red)' }}
-                    title="Deactivate"
-                  >
-                    <XCircle size={16} />
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
+                  </td>
+                  <td className="mono" style={{ color: 'var(--text-muted)' }}>
+                    {u.phone}
+                  </td>
+                  <td>
+                    {u.role === 'customer' || u.role === 'admin' ? (
+                      <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>—</span>
+                    ) : u.isKYCApproved ? (
+                      <span className="badge badge-completed" style={{ fontSize: 9 }}>APPROVED</span>
+                    ) : (
+                      <span className="badge badge-pending" style={{ fontSize: 9 }}>PENDING</span>
+                    )}
+                  </td>
+                  <td>
+                    {u.isActive ? (
+                      <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 500 }}>Active</span>
+                    ) : (
+                      <span style={{ fontSize: 12, color: 'var(--red)', fontWeight: 500 }}>Inactive</span>
+                    )}
+                  </td>
+                  <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                    {new Date(u.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </td>
+                  <td style={{ paddingRight: 20 }}>
+                    <div className="admin-row-actions">
+                      {!u.isKYCApproved && u.role !== 'customer' && u.role !== 'admin' && (
+                        <button
+                          onClick={() => approveKYC(u._id)}
+                          className="admin-btn-sm admin-btn-approve"
+                          title="Approve KYC"
+                        >
+                          <CheckCircle size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                          Approve
+                        </button>
+                      )}
+                      {u.isActive && u.role !== 'admin' && (
+                        <button
+                          onClick={() => deactivate(u._id)}
+                          className="admin-btn-sm admin-btn-reject"
+                          title="Deactivate"
+                        >
+                          <XCircle size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                          Deactivate
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-6">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className="w-9 h-9 rounded-md text-sm font-500"
-              style={{
-                background: page === p ? 'var(--accent)' : 'var(--surface)',
-                color: page === p ? 'white' : 'var(--text-muted)',
-                border: '1px solid var(--border-strong)',
-              }}
-            >
+        <div className="admin-pager">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button key={p} onClick={() => setPage(p)} className={page === p ? 'active' : ''}>
               {p}
             </button>
           ))}
         </div>
       )}
-    </motion.div>
+    </>
   )
 }

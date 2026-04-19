@@ -21,7 +21,7 @@ export default function EmptyState({ title, subtitle, ctaLabel, onCta }: Props) 
           <rect x="32" y="50" width="16" height="4" rx="2" fill="var(--surface-raised)" />
         </svg>
       </div>
-      <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--text)', marginBottom: 8 }}>{title}</h3>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: 'var(--text)', marginBottom: 8 }}>{title}</h3>
       {subtitle && <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.5, maxWidth: 280, marginBottom: 24 }}>{subtitle}</p>}
       {ctaLabel && onCta && (
         <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} onClick={onCta}

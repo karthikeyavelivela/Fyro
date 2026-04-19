@@ -1,39 +1,62 @@
-import type { Metadata } from 'next'
-import './globals.css'
-import { Toaster } from 'react-hot-toast'
+import type { Metadata } from 'next';
+import { Outfit, Syne } from 'next/font/google';
+import { Toaster } from 'react-hot-toast';
+import './globals.css';
+
+const outfit = Outfit({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-outfit'
+});
+
+const syne = Syne({ 
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  variable: '--font-syne'
+});
 
 export const metadata: Metadata = {
-  title: 'FYRO - Logistics Marketplace',
-  description: 'Book trucks and hamali workers instantly',
-}
+  title: 'FYRO - Find Your Right One',
+  description: 'Indian logistics marketplace for trucks and hamali workers.',
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body>
+    <html lang="en" className={`${outfit.variable} ${syne.variable}`}>
+      <body className="antialiased">
         {children}
-        <Toaster
+        <Toaster 
           position="top-center"
           toastOptions={{
-            duration: 3000,
             style: {
               background: 'var(--surface)',
               color: 'var(--text)',
               border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
               boxShadow: 'var(--shadow-md)',
-              fontFamily: 'Outfit, sans-serif',
+              fontFamily: 'Outfit, sans-serif'
+            },
+            success: {
+              style: {
+                borderLeft: '4px solid var(--green)',
+              },
+              iconTheme: {
+                primary: 'var(--accent)',
+                secondary: 'var(--surface)',
+              },
+            },
+            error: {
+              style: {
+                borderLeft: '4px solid var(--red)',
+              },
             },
           }}
         />
       </body>
     </html>
-  )
+  );
 }

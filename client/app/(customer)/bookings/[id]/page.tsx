@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
-import { getSocket } from '@/lib/socket'
+import { socket } from '@/lib/socket'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import LiveTrackingMap from '@/components/LiveTrackingMap'
 import StatusTimeline from '@/components/StatusTimeline'
@@ -47,7 +47,6 @@ export default function BookingDetailPage() {
 
   useEffect(() => {
     fetchBooking()
-    const socket = getSocket()
     socket.emit('join:booking', { bookingId: id })
     socket.on('driver:location', (loc: any) => setDriverLocation(loc))
     socket.on('booking:status_update', () => fetchBooking())
@@ -121,7 +120,7 @@ export default function BookingDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
+      <div className="page-shell compact" style={{ padding: '24px 0' }}>
         <Skeleton height={280} style={{ borderRadius: 'var(--radius-md)', marginBottom: 16 }} />
         <Skeleton height={120} style={{ borderRadius: 'var(--radius-md)', marginBottom: 12 }} />
         <Skeleton height={80} style={{ borderRadius: 'var(--radius-md)' }} />
@@ -132,7 +131,7 @@ export default function BookingDetailPage() {
   if (!booking) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>Booking not found</div>
 
   return (
-    <motion.div variants={staggerContainer} initial="hidden" animate="show" style={{ maxWidth: 480, margin: '0 auto' }}>
+    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="page-shell compact">
 
       {/* Header */}
       <motion.div variants={fadeUp} custom={0} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 16px 0' }}>
@@ -142,7 +141,7 @@ export default function BookingDetailPage() {
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>#{(booking.bookingId || booking._id).slice(-8).toUpperCase()}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18 }}>
               {isTransport ? 'Truck Booking' : 'Hamali Booking'}
             </h1>
             <Badge status={booking.status} />
@@ -164,14 +163,14 @@ export default function BookingDetailPage() {
 
         {/* Status timeline */}
         <motion.div variants={fadeUp} custom={2} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '20px', border: '1px solid var(--border)' }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Status</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Status</div>
           <StatusTimeline currentStatus={booking.status} timestamps={timestamps} />
         </motion.div>
 
         {/* Provider info */}
         {provider && (
           <motion.div variants={fadeUp} custom={3} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid var(--border)' }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
               {isTransport ? 'Your Driver' : 'Your Team'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -207,8 +206,8 @@ export default function BookingDetailPage() {
           <motion.button variants={fadeUp} custom={5} whileTap={{ scale: 0.97 }} onClick={handlePay} disabled={paying}
             style={{
               width: '100%', background: 'var(--accent)', color: 'white', border: 'none',
-              borderRadius: 'var(--radius-md)', padding: '18px', fontSize: 16, fontWeight: 700,
-              cursor: paying ? 'not-allowed' : 'pointer', opacity: paying ? 0.7 : 1, fontFamily: 'Outfit, sans-serif'
+              borderRadius: 999, padding: '18px', fontSize: 16, fontWeight: 700,
+              cursor: paying ? 'not-allowed' : 'pointer', opacity: paying ? 0.7 : 1, fontFamily: 'var(--font-body)'
             }}>
             {paying ? 'Processing...' : `Pay ₹${booking.totalFare} Now`}
           </motion.button>
@@ -217,15 +216,15 @@ export default function BookingDetailPage() {
         {/* Rating section */}
         {isCompleted && !alreadyRated && (
           <motion.div variants={fadeUp} custom={6} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '20px', border: '1px solid var(--border)' }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Rate your experience</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Rate your experience</div>
             <RatingStars value={rating} onChange={setRating} />
             <textarea value={review} onChange={e => setReview(e.target.value)} placeholder="Tell us what you think..." rows={3}
-              style={{ width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)', borderRadius: 10, padding: '12px', fontSize: 15, resize: 'none', outline: 'none', marginTop: 12, fontFamily: 'Outfit, sans-serif' }} />
+              style={{ width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)', borderRadius: 10, padding: '12px', fontSize: 15, resize: 'none', outline: 'none', marginTop: 12, fontFamily: 'var(--font-body)' }} />
             <motion.button whileTap={{ scale: 0.97 }} onClick={handleRate} disabled={ratingLoading}
               style={{
                 marginTop: 12, background: 'var(--accent)', color: 'white', border: 'none',
-                borderRadius: 10, padding: '12px 24px', fontSize: 14, fontWeight: 600,
-                cursor: ratingLoading ? 'not-allowed' : 'pointer', fontFamily: 'Outfit, sans-serif'
+                borderRadius: 999, padding: '12px 24px', fontSize: 14, fontWeight: 600,
+                cursor: ratingLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-body)'
               }}>
               {ratingLoading ? 'Submitting...' : 'Submit Rating'}
             </motion.button>
@@ -243,8 +242,8 @@ export default function BookingDetailPage() {
         <motion.button variants={fadeUp} custom={8} whileTap={{ scale: 0.97 }} onClick={() => setComplaintOpen(true)}
           style={{
             width: '100%', background: 'transparent', color: '#DC2626', border: '1.5px solid #DC2626',
-            borderRadius: 'var(--radius-md)', padding: '14px', fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+            borderRadius: 999, padding: '14px', fontSize: 14, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
           }}>
           <AlertCircle size={16} /> Raise a Complaint
         </motion.button>
@@ -270,13 +269,13 @@ export default function BookingDetailPage() {
           <div>
             <label style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Description</label>
             <textarea value={complaintDesc} onChange={e => setComplaintDesc(e.target.value)} rows={4} placeholder="Describe what happened..."
-              style={{ width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)', borderRadius: 10, padding: '12px', fontSize: 15, resize: 'none', outline: 'none', fontFamily: 'Outfit, sans-serif' }} />
+              style={{ width: '100%', background: 'var(--surface-raised)', border: '1.5px solid var(--border-strong)', borderRadius: 10, padding: '12px', fontSize: 15, resize: 'none', outline: 'none', fontFamily: 'var(--font-body)' }} />
           </div>
           <motion.button whileTap={{ scale: 0.97 }} onClick={handleComplaint} disabled={submittingComplaint}
             style={{
               width: '100%', background: '#DC2626', color: 'white', border: 'none',
-              borderRadius: 'var(--radius-md)', padding: '16px', fontSize: 15, fontWeight: 600,
-              cursor: submittingComplaint ? 'not-allowed' : 'pointer', opacity: submittingComplaint ? 0.7 : 1, fontFamily: 'Outfit, sans-serif'
+              borderRadius: 999, padding: '16px', fontSize: 15, fontWeight: 600,
+              cursor: submittingComplaint ? 'not-allowed' : 'pointer', opacity: submittingComplaint ? 0.7 : 1, fontFamily: 'var(--font-body)'
             }}>
             {submittingComplaint ? 'Submitting...' : 'Submit Complaint'}
           </motion.button>
