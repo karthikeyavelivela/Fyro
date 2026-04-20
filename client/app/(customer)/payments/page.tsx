@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
+
+const CreditCard3D = dynamic(() => import('@/components/3d/CreditCard3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Skeleton from '@/components/ui/Skeleton'
@@ -68,13 +71,21 @@ export default function PaymentsPage() {
       style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}
     >
       {/* Header */}
-      <motion.div variants={fadeUp}>
+      <motion.div variants={fadeUp} style={{ position: 'relative' }}>
         <h1 className="syne" style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
           Payments
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>
           Transactions, invoices, and wallet balance
         </p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 4px' }}>
+          <div style={{ width: 220, height: 150 }}>
+            <CreditCard3D />
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, fontFamily: 'var(--font-body, Outfit)' }}>
+            Secure payments powered by Razorpay
+          </p>
+        </div>
       </motion.div>
 
       {/* Wallet balance card - dark */}

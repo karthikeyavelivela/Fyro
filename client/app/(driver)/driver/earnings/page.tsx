@@ -1,10 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import api from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import EarningsChart from '@/components/EarningsChart'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
+
+const RupeeCoin3D = dynamic(() => import('@/components/3d/RupeeCoin3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 
 const ACCENT = 'var(--orange)'
 
@@ -65,6 +68,9 @@ export default function DriverEarningsPage() {
         <h1 className="syne" style={{ fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
           Earnings
         </h1>
+        <div style={{ marginLeft: 'auto', width: 90, height: 90, pointerEvents: 'none' }}>
+          <RupeeCoin3D teal={false} />
+        </div>
       </div>
 
       <div style={{ padding: '16px 20px', maxWidth: 560, margin: '0 auto' }}>

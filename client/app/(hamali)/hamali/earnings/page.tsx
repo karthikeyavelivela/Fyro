@@ -1,6 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
+
+const RupeeCoin3D = dynamic(() => import('@/components/3d/RupeeCoin3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 import { fadeUp, staggerContainer, springPop } from '@/lib/animations'
 import api from '@/lib/api'
 import { useRouter } from 'next/navigation'
@@ -66,6 +69,9 @@ export default function HamaliEarningsPage() {
           <ArrowLeft size={20} />
         </button>
         <h1 className="font-syne font-800 text-2xl" style={{ color: 'var(--text)' }}>Earnings</h1>
+        <div style={{ marginLeft: 'auto', width: 90, height: 90, pointerEvents: 'none' }}>
+          <RupeeCoin3D teal={true} />
+        </div>
       </motion.div>
 
       {/* Summary cards */}

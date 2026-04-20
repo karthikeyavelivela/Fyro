@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { AnimatePresence, motion } from 'framer-motion'
+
+const TrafficLight3D = dynamic(() => import('@/components/3d/TrafficLight3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -101,12 +104,16 @@ export default function DriverIncomingPage() {
             {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 200, borderRadius: 20 }} />)}
           </>
         ) : bookings.length === 0 ? (
-          <div style={{ padding: 40, background: '#fff', borderRadius: 20, textAlign: 'center', border: '1px solid var(--border-light)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--orange-light)', margin: '0 auto 14px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Package size={24} color="var(--orange)" />
+          <div style={{ padding: '32px 20px', background: '#fff', borderRadius: 20, textAlign: 'center', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: 160, height: 200 }}>
+              <TrafficLight3D />
             </div>
-            <div className="font-display" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>No requests right now</div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>Stay online to receive new booking requests.</p>
+            <div className="font-display" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginTop: 14 }}>No requests right now</div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, maxWidth: 240 }}>Stay online — you&apos;ll be notified instantly.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12 }}>
+              <div className="pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#16A34A', position: 'relative' }} />
+              <span style={{ fontSize: 12, color: '#16A34A', fontWeight: 500 }}>Connected</span>
+            </div>
           </div>
         ) : (
           <AnimatePresence>

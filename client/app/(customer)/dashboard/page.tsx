@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { Bell, Truck, Package, List, RefreshCcw, FileText, Gift, ArrowRight } from 'lucide-react'
+
+const CustomerAvatar3D = dynamic(() => import('@/components/3d/CustomerAvatar3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
+const FloatingTruck3D = dynamic(() => import('@/components/3d/FloatingTruck3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
+const FloatingBoxes3D = dynamic(() => import('@/components/3d/FloatingBoxes3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -87,14 +92,20 @@ export default function DashboardPage() {
       style={{ padding: '16px 20px 120px', maxWidth: 460, margin: '0 auto' }}
     >
       {/* Header */}
-      <motion.div variants={fadeUp} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{greeting()},</div>
-          <div className="syne" style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em' }}>
-            {user?.name?.split(' ')[0] || 'there'}
+      <motion.div variants={fadeUp} style={{ position: 'relative', minHeight: 110 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 120 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>Customer Workspace</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{greeting()},</div>
+            <div className="syne" style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em' }}>
+              {user?.name?.split(' ')[0] || 'there'}
+            </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ position: 'absolute', top: -6, right: 0, width: 115, height: 130, pointerEvents: 'none', zIndex: 2 }}>
+          <CustomerAvatar3D />
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
           <button style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', cursor: 'pointer' }}>
             <Bell size={18} />
             <span style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: 'var(--orange)', border: '2px solid #fff' }} />
@@ -153,8 +164,10 @@ export default function DashboardPage() {
           }}>
             <div className="syne" style={{ fontSize: 22, fontWeight: 700 }}>Book a Truck</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Transport goods instantly</div>
-            <Truck size={88} color="rgba(255,255,255,0.25)" style={{ position: 'absolute', right: -8, bottom: -12 }} />
-            <ArrowRight size={20} color="#fff" style={{ position: 'absolute', right: 18, bottom: 18 }} />
+            <div style={{ position: 'absolute', right: -10, top: -15, width: 160, height: 150, pointerEvents: 'none' }}>
+              <FloatingTruck3D />
+            </div>
+            <ArrowRight size={20} color="#fff" style={{ position: 'absolute', right: 18, bottom: 18, zIndex: 2 }} />
           </button>
         </Link>
         <Link href="/book?type=hamali" style={{ textDecoration: 'none' }}>
@@ -165,8 +178,10 @@ export default function DashboardPage() {
           }}>
             <div className="syne" style={{ fontSize: 22, fontWeight: 700 }}>Book Hamali</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Loading & unloading workers</div>
-            <Package size={88} color="rgba(255,255,255,0.25)" style={{ position: 'absolute', right: -8, bottom: -12 }} />
-            <ArrowRight size={20} color="#fff" style={{ position: 'absolute', right: 18, bottom: 18 }} />
+            <div style={{ position: 'absolute', right: -10, top: -15, width: 160, height: 150, pointerEvents: 'none' }}>
+              <FloatingBoxes3D />
+            </div>
+            <ArrowRight size={20} color="#fff" style={{ position: 'absolute', right: 18, bottom: 18, zIndex: 2 }} />
           </button>
         </Link>
       </motion.div>
