@@ -1,90 +1,90 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle, MapPin, Star, TrendingUp, Users } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { ensureArray } from '@/lib/ensureArray'
 import { socket } from '@/lib/socket'
 import AvailabilityToggle from '@/components/AvailabilityToggle'
-import EarningsChart from '@/components/EarningsChart'
-import BookingCard from '@/components/BookingCard'
-import { fadeUp, staggerContainer, springPop } from '@/lib/animations'
+import { fadeUp, stagger, springCard } from '@/lib/motion'
+
+function SectionSkeleton() {
+  return <div className="skeleton" style={{ height: 148, borderRadius: 22 }} />
+}
 
 export default function HamaliHomePage() {
-  const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [earnings, setEarnings] = useState<any>({ today: 0, todayCount: 0, thisWeek: 0 })
+  const [incoming, setIncoming] = useState<any[]>([])
+  const [recentJobs, setRecentJobs] = useState<any[]>([])
   const [isAvailable, setIsAvailable] = useState(false)
   const [availabilityLoading, setAvailabilityLoading] = useState(false)
-  const [earnings, setEarnings] = useState<any>(null)
-  const [activeBooking, setActiveBooking] = useState<any>(null)
-  const [recentBookings, setRecentBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
+    let mounted = true
     const load = async () => {
+      setLoading(true)
+      setError('')
       try {
-        const [meResult, earningsResult, bookingsResult, profileResult] = await Promise.allSettled([
+        const [me, profileRes, earningsRes, incomingRes, bookingsRes] = await Promise.allSettled([
           api.get('/api/auth/me'),
-          api.get('/api/hamali/earnings'),
-          api.get('/api/hamali/bookings?limit=4'),
           api.get('/api/hamali/profile/mine'),
+          api.get('/api/hamali/earnings'),
+          api.get('/api/hamali/incoming'),
+          api.get('/api/hamali/bookings'),
         ])
 
-        if (meResult.status === 'fulfilled') {
-          setUser(meResult.value.data?.user || meResult.value.data?.data?.user || null)
-        }
+        if (!mounted) return
 
-        if (earningsResult.status === 'fulfilled') {
-          setEarnings(earningsResult.value.data?.earnings || earningsResult.value.data)
-        } else {
-          setEarnings({ today: 0, thisWeek: 0, todayCount: 0, last7days: [] })
-        }
+        const meUser = me.status === 'fulfilled' ? (me.value.data?.user || me.value.data?.data?.user || null) : null
+        setUser(meUser)
+        if (meUser?._id || meUser?.id) socket.emit('join:user', { userId: meUser._id || meUser.id })
 
-        if (bookingsResult.status === 'fulfilled') {
-          setRecentBookings(
-            ensureArray<any>(
-              bookingsResult.value.data?.bookings ?? bookingsResult.value.data?.data?.bookings ?? bookingsResult.value.data?.data ?? bookingsResult.value.data
-            )
-          )
-        } else {
-          setRecentBookings([])
-        }
+        const profileData = profileRes.status === 'fulfilled'
+          ? (profileRes.value.data?.profile || profileRes.value.data?.data?.profile || null)
+          : null
+        setProfile(profileData)
+        setIsAvailable(Boolean(profileData?.isAvailable))
 
-        if (profileResult.status === 'fulfilled') {
-          const prof = profileResult.value.data?.profile || profileResult.value.data?.data?.profile || null
-          setProfile(prof)
-          setIsAvailable(Boolean(prof?.isAvailable))
-        } else {
-          setProfile(null)
-          setIsAvailable(false)
-        }
+        const earningsData = earningsRes.status === 'fulfilled'
+          ? (earningsRes.value.data?.earnings || earningsRes.value.data?.data?.earnings || {})
+          : {}
+        setEarnings({
+          today: Number(earningsData.today || 0),
+          todayCount: Number(earningsData.todayCount || 0),
+          thisWeek: Number(earningsData.thisWeek || 0),
+        })
 
-        try {
-          const activeRes = await api.get('/api/hamali/bookings?status=in_progress&limit=1')
-          if (activeRes.data.bookings?.[0]) {
-            setActiveBooking(activeRes.data.bookings[0])
-          } else {
-            const acceptedRes = await api.get('/api/hamali/bookings?status=accepted&limit=1')
-            setActiveBooking(acceptedRes.data.bookings?.[0] || null)
-          }
-        } catch {
-          setActiveBooking(null)
-        }
+        const incomingList = incomingRes.status === 'fulfilled'
+          ? ensureArray<any>(incomingRes.value.data?.bookings ?? incomingRes.value.data?.data?.bookings ?? incomingRes.value.data?.data ?? incomingRes.value.data)
+          : []
+        setIncoming(incomingList.slice(0, 3))
+
+        const bookingList = bookingsRes.status === 'fulfilled'
+          ? ensureArray<any>(bookingsRes.value.data?.bookings ?? bookingsRes.value.data?.data?.bookings ?? bookingsRes.value.data?.data ?? bookingsRes.value.data)
+          : []
+        setRecentJobs(bookingList.slice(0, 4))
       } catch {
-        toast.error('Failed to load hamali dashboard')
+        if (mounted) setError('Unable to load hamali dashboard right now.')
       } finally {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
     }
 
     load()
-    socket.on('booking:new', () => toast('New job request'))
+    socket.on('booking:new', (booking: any) => {
+      const next = booking?.booking || booking
+      if (!next?._id) return
+      setIncoming((prev) => prev.some((item) => item._id === next._id) ? prev : [next, ...prev].slice(0, 3))
+      toast('New job request')
+    })
     return () => {
+      mounted = false
       socket.off('booking:new')
     }
   }, [])
@@ -94,133 +94,115 @@ export default function HamaliHomePage() {
     try {
       await api.put('/api/hamali/availability', { isAvailable: value })
       setIsAvailable(value)
-      toast.success(value ? 'You are now online' : 'You are now offline')
-    } catch {
-      toast.error('Failed to update availability')
+      setProfile((prev: any) => prev ? { ...prev, isAvailable: value } : prev)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to update availability')
     } finally {
       setAvailabilityLoading(false)
     }
   }
 
-  const greeting = (() => {
-    const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 17) return 'Good afternoon'
-    return 'Good evening'
-  })()
-
-  if (loading) {
-    return (
-      <div className="page-shell compact page-stack">
-        <div className="shimmer" style={{ height: 96, borderRadius: 18 }} />
-        <div className="shimmer" style={{ height: 140, borderRadius: 18 }} />
-        <div className="shimmer" style={{ height: 260, borderRadius: 18 }} />
-      </div>
-    )
-  }
-
   return (
-    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="page-shell page-stack">
-      <motion.div variants={fadeUp} className="page-title">
-        <div>
-          <h1>{greeting}, {user?.name?.split(' ')[0] || 'Hamali'}</h1>
-          <p>Keep team availability, active jobs, and earnings visible in a proper desktop workspace.</p>
-        </div>
-        <AvailabilityToggle isAvailable={isAvailable} onChange={toggleAvailability} loading={availabilityLoading} themeColor="var(--teal)" />
-      </motion.div>
-
-      <motion.div variants={springPop} className="compact-stat-grid">
-        {[
-          { label: 'Today', value: `₹${earnings?.today || 0}`, icon: TrendingUp },
-          { label: 'Team size', value: String(profile?.teamSize || 1), icon: Users },
-          { label: 'Rating', value: user?.rating?.toFixed(1) || '5.0', icon: Star },
-        ].map(({ label, value, icon: Icon }) => (
-          <div key={label} className="compact-stat">
-            <Icon size={18} color="var(--teal)" />
-            <strong>{value}</strong>
-            <span>{label}</span>
+    <motion.div variants={stagger} initial="hidden" animate="show" className="page-shell compact page-stack">
+      <motion.section variants={fadeUp} custom={0} className="surface-panel panel-pad">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>Hamali Home</p>
+            <h1 className="font-display" style={{ margin: '8px 0 0', fontSize: '2rem' }}>{user?.name?.split(' ')[0] || 'Hamali'}</h1>
           </div>
-        ))}
-      </motion.div>
-
-      <div className="dashboard-grid">
-        <div className="dashboard-main page-stack">
-          {activeBooking ? (
-            <motion.section variants={fadeUp} className="surface-panel panel-pad" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(242,251,249,0.9))' }}>
-              <div className="section-head">
-                <div>
-                  <h2>Active job</h2>
-                  <p style={{ color: 'var(--text-muted)', marginTop: 6 }}>{activeBooking.status.replace('_', ' ')}</p>
-                </div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.6rem', lineHeight: 1, color: 'var(--teal)' }}>
-                  ₹{activeBooking.totalFare || activeBooking.finalFare || 0}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <MapPin size={16} color="var(--teal)" style={{ marginTop: 4 }} />
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Location</div>
-                  <div>{activeBooking.pickup?.address || activeBooking.workLocation?.address}</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 18 }}>
-                {activeBooking.status === 'in_progress' && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        await api.put(`/api/hamali/bookings/${activeBooking.bookingId || activeBooking._id}/complete`)
-                        toast.success('Job completed')
-                        setActiveBooking(null)
-                      } catch {
-                        toast.error('Failed to complete job')
-                      }
-                    }}
-                    style={{ minHeight: 46, padding: '0 18px', borderRadius: 999, border: 0, background: 'var(--green)', color: 'white', cursor: 'pointer', fontWeight: 700, fontFamily: 'var(--font-body)' }}
-                  >
-                    <CheckCircle size={15} style={{ display: 'inline-block', marginRight: 8 }} />
-                    Complete
-                  </button>
-                )}
-                <button
-                  onClick={() => router.push(`/hamali/bookings/${activeBooking.bookingId || activeBooking._id}`)}
-                  style={{ minHeight: 46, padding: '0 18px', borderRadius: 999, border: 0, background: 'var(--teal)', color: 'white', cursor: 'pointer', fontWeight: 700, fontFamily: 'var(--font-body)' }}
-                >
-                  View details
-                </button>
-              </div>
-            </motion.section>
-          ) : (
-            <motion.section variants={fadeUp} className="surface-panel panel-pad">
-              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.35rem', lineHeight: 1 }}>No active job</h2>
-              <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Stay online to receive new hamali requests.</p>
-            </motion.section>
-          )}
-
-          {earnings?.last7days && (
-            <motion.section variants={fadeUp} className="surface-panel panel-pad">
-              <div className="section-head">
-                <h3>This Week</h3>
-                <Link href="/hamali/earnings" className="muted-link">Open earnings</Link>
-              </div>
-              <EarningsChart data={earnings.last7days} color="var(--teal)" />
-            </motion.section>
-          )}
+          <AvailabilityToggle isAvailable={isAvailable} onChange={toggleAvailability} loading={availabilityLoading} themeColor="var(--teal)" />
         </div>
+        {error && <p style={{ margin: '14px 0 0', color: 'var(--red)', fontSize: 14 }}>{error}</p>}
+      </motion.section>
 
-        <div className="dashboard-side page-stack">
-          <motion.section variants={fadeUp} className="surface-panel panel-pad">
+      {loading ? (
+        <>
+          <SectionSkeleton />
+          <SectionSkeleton />
+          <SectionSkeleton />
+          <SectionSkeleton />
+        </>
+      ) : (
+        <>
+          <motion.section variants={fadeUp} custom={1} className="surface-panel panel-pad">
             <div className="section-head">
-              <h3>Recent jobs</h3>
-              <Link href="/hamali/incoming" className="muted-link">Incoming jobs</Link>
+              <h2>Today Stats</h2>
             </div>
-            <div className="page-stack" style={{ gap: 12 }}>
-              {recentBookings.length ? recentBookings.map((booking) => <BookingCard key={booking._id} booking={booking} />) : <div style={{ color: 'var(--text-muted)' }}>No recent jobs.</div>}
+            <div className="compact-stat-grid">
+              <div className="compact-stat">
+                <strong className="stat-number">₹{Number(earnings.today || 0).toLocaleString('en-IN')}</strong>
+                <span>Earnings</span>
+              </div>
+              <div className="compact-stat">
+                <strong className="stat-number">{earnings.todayCount || 0}</strong>
+                <span>Jobs</span>
+              </div>
+              <div className="compact-stat">
+                <strong className="stat-number">₹{Number(earnings.thisWeek || 0).toLocaleString('en-IN')}</strong>
+                <span>This Week</span>
+              </div>
             </div>
           </motion.section>
-        </div>
-      </div>
+
+          <motion.section variants={springCard} className="surface-panel panel-pad">
+            <div className="section-head">
+              <h2>Profile Summary</h2>
+            </div>
+            {profile ? (
+              <div className="page-stack" style={{ gap: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 18 }}>Team of {profile.teamSize || 1}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>Rate per job: ₹{Number(profile.ratePerJob || 0).toLocaleString('en-IN')}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>Skills: {ensureArray<string>(profile.skills).join(', ') || 'Not added yet'}</div>
+              </div>
+            ) : (
+              <div className="page-stack" style={{ gap: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 18 }}>Complete your profile to receive jobs</div>
+                <Link href="/hamali/profile" className="muted-link" style={{ color: 'var(--teal)' }}>Go to profile</Link>
+              </div>
+            )}
+          </motion.section>
+
+          <motion.section variants={fadeUp} custom={2} className="surface-panel panel-pad">
+            <div className="section-head">
+              <h2>Incoming Jobs Preview</h2>
+              <Link href="/hamali/incoming" className="muted-link" style={{ color: 'var(--teal)' }}>See all</Link>
+            </div>
+            {incoming.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)' }}>{isAvailable ? 'No incoming jobs right now.' : 'Go online to start receiving jobs.'}</div>
+            ) : (
+              <div className="page-stack" style={{ gap: 12 }}>
+                {incoming.map((job) => (
+                  <div key={job._id} style={{ padding: 16, borderRadius: 18, border: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
+                    <div style={{ fontWeight: 700 }}>{job.pickup?.address || 'Pickup pending'}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>{job.hamaliDetails?.type || 'General job'}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.section>
+
+          <motion.section variants={fadeUp} custom={3} className="surface-panel panel-pad">
+            <div className="section-head">
+              <h2>Recent Jobs</h2>
+              <Link href="/hamali/earnings" className="muted-link" style={{ color: 'var(--teal)' }}>Earnings</Link>
+            </div>
+            {recentJobs.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)' }}>No jobs yet.</div>
+            ) : (
+              <div className="page-stack" style={{ gap: 12 }}>
+                {recentJobs.map((job) => (
+                  <Link key={job._id} href={`/hamali/bookings/${job.bookingId || job._id}`} style={{ textDecoration: 'none' }}>
+                    <div style={{ padding: 16, borderRadius: 18, border: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
+                      <div style={{ fontWeight: 700 }}>{job.customerId?.name || 'Customer'}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>{job.status?.replace('_', ' ') || 'pending'}</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </motion.section>
+        </>
+      )}
     </motion.div>
   )
 }

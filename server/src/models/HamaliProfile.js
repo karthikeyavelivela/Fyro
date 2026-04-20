@@ -19,4 +19,4 @@ const hamaliProfileSchema = new mongoose.Schema({
 
 hamaliProfileSchema.index({ currentLocation: '2dsphere' })
 
-module.exports = mongoose.model('HamaliProfile', hamaliProfileSchema)
+module.exports = mongoose.models.HamaliProfile || mongoose.model('HamaliProfile', hamaliProfileSchema)

@@ -10,18 +10,20 @@ interface Props {
 
 export default function AvailabilityToggle({ isAvailable, onChange, loading, themeColor }: Props) {
   const onColor = themeColor || 'var(--green)'
-  const offColor = '#6B6860'
+  const offColor = 'rgba(26,25,22,0.18)'
   return (
     <motion.button
       onClick={() => !loading && onChange(!isAvailable)}
+      whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
+      transition={{ duration: 0.15 }}
       disabled={loading}
       style={{
-        padding: '9px 16px',
+        padding: '6px 10px 6px 6px',
         borderRadius: 999,
         border: 'none',
-        background: isAvailable ? onColor : offColor,
-        color: '#fff',
+        background: isAvailable ? onColor : 'var(--surface)',
+        color: isAvailable ? '#fff' : 'var(--text)',
         fontSize: 13,
         fontWeight: 600,
         display: 'inline-flex',
@@ -30,22 +32,17 @@ export default function AvailabilityToggle({ isAvailable, onChange, loading, the
         cursor: loading ? 'wait' : 'pointer',
         opacity: loading ? 0.7 : 1,
         transition: 'background 0.3s, box-shadow 0.2s',
-        boxShadow: isAvailable ? `0 4px 12px ${onColor === 'var(--teal)' ? 'rgba(13,148,136,0.3)' : 'rgba(22,163,74,0.3)'}` : 'none',
+        boxShadow: isAvailable ? `0 8px 24px ${onColor === 'var(--teal)' ? 'rgba(13,148,136,0.24)' : 'rgba(22,163,74,0.24)'}` : 'var(--shadow-sm)',
         fontFamily: 'var(--font-body)'
       }}
     >
-      <span
-        className="dot dot-pulse"
-        style={{
-          display: 'inline-block',
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          background: '#fff',
-          color: '#fff',
-          position: 'relative'
-        }}
-      />
+      <span style={{ position: 'relative', width: 42, height: 24, borderRadius: 999, background: isAvailable ? 'rgba(255,255,255,0.24)' : offColor, display: 'inline-flex', alignItems: 'center', padding: 2 }}>
+        <motion.span
+          layoutId="toggle-pill"
+          style={{ display: 'inline-block', width: 20, height: 20, borderRadius: '50%', background: '#fff', marginLeft: isAvailable ? 18 : 0 }}
+          transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+        />
+      </span>
       {loading ? '...' : isAvailable ? 'Online' : 'Offline'}
     </motion.button>
   )

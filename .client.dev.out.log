@@ -21,3 +21,39 @@
  ○ Compiling / ...
  ✓ Compiled / in 3.9s (1279 modules)
  GET / 200 in 4172ms
+ GET / 200 in 83ms
+ ✓ Compiled /middleware in 412ms (153 modules)
+ ○ Compiling /driver ...
+ ✓ Compiled /driver in 2.8s (2622 modules)
+ GET /driver 200 in 3179ms
+ ✓ Compiled /_not-found in 416ms (2611 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 513ms
+ ✓ Compiled /driver/incoming in 352ms (2628 modules)
+ ✓ Compiled /driver/earnings in 321ms (2636 modules)
+ ○ Compiling /driver/profile ...
+ ✓ Compiled /driver/profile in 818ms (2687 modules)
+ ✓ Compiled in 2.5s (2684 modules)
+ ✓ Compiled in 933ms (1301 modules)
+ ✓ Compiled in 852ms (2167 modules)
+ ✓ Compiled in 243ms (1295 modules)
+ ✓ Compiled in 174ms (1295 modules)
+ ✓ Compiled in 356ms (1295 modules)
+ ✓ Compiled in 315ms (1295 modules)
+ ✓ Compiled in 1097ms (2314 modules)
+ ✓ Compiled in 245ms (2300 modules)
+ ✓ Compiled / in 256ms (879 modules)
+ GET / 200 in 500ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1221ms (2188 modules)
+ ✓ Compiled /_not-found in 335ms (2177 modules)
+ GET /_next/static/webpack/fbbe78683af01dcb.webpack.hot-update.json 404 in 426ms
+ GET / 200 in 84ms
+ GET /login 200 in 72ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 50ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1899ms (2397 modules)
+ ✓ Compiled /_not-found in 470ms (2400 modules)
+ GET /hamali 404 in 3ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 26ms
+ GET /hamali 404 in 2ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 37ms

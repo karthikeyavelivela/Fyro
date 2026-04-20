@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   Bell,
   BookOpen,
@@ -120,7 +121,19 @@ export default function AppShell({
           <div className="app-topbar-badge">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
         </header>
 
-        <main className="app-main">{children}</main>
+        <main className="app-main" style={{ paddingBottom: '80px' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
 
       <BottomNav role={role} activePath={pathname} admin={role === 'admin'} accent={meta.accent} />

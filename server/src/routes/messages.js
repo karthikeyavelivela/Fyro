@@ -1,9 +1,9 @@
 const express = require('express')
-const protect = require('../middleware/auth')
-const roleGuard = require('../middleware/roleGuard')
+const protect = require('../middleware/auth.js')
+const roleGuard = require('../middleware/roleGuard.js')
 const Message = require('../models/Message')
 const Booking = require('../models/Booking')
-const logger = require('../utils/logger')
+const logger = require('../utils/logger.js')
 
 const router = express.Router()
 

@@ -1,11 +1,11 @@
 const express = require('express')
-const protect = require('../middleware/auth')
-const roleGuard = require('../middleware/roleGuard')
+const protect = require('../middleware/auth.js')
+const roleGuard = require('../middleware/roleGuard.js')
 const Vehicle = require('../models/Vehicle')
 const Booking = require('../models/Booking')
 const haversine = require('../utils/haversine')
 const findBooking = require('../utils/findBooking')
-const logger = require('../utils/logger')
+const logger = require('../utils/logger.js')
 
 const router = express.Router()
 
@@ -13,7 +13,7 @@ const router = express.Router()
 router.get('/incoming', protect, roleGuard('driver'), async (req, res) => {
   try {
     const vehicle = await Vehicle.findOne({ driverId: req.user.userId })
-    if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' })
+    if (!vehicle) return res.json({ success: true, bookings: [], vehicle: null })
 
     const driverCoords = vehicle.currentLocation && vehicle.currentLocation.coordinates
       ? vehicle.currentLocation.coordinates
@@ -306,8 +306,7 @@ router.get('/bookings', protect, roleGuard('driver'), async (req, res) => {
 router.get('/vehicles/mine', protect, roleGuard('driver'), async (req, res) => {
   try {
     const vehicle = await Vehicle.findOne({ driverId: req.user.userId })
-    if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' })
-    return res.json({ success: true, vehicle })
+    return res.json({ success: true, vehicle: vehicle || null })
   } catch (err) {
     logger.error('GET driver/vehicles/mine: ' + err.message)
     return res.status(500).json({ success: false, message: 'Server error' })

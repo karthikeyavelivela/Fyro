@@ -1,9 +1,14 @@
 {
   "pages": {
-    "/page": [
+    "/(hamali)/hamali/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/(hamali)/hamali/page.js"
+    ],
+    "/(hamali)/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(hamali)/layout.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -11,30 +16,25 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/(driver)/driver/page": [
+    "/(hamali)/hamali/incoming/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(driver)/driver/page.js"
+      "static/chunks/app/(hamali)/hamali/incoming/page.js"
     ],
-    "/(driver)/layout": [
+    "/(hamali)/hamali/earnings/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(driver)/layout.js"
+      "static/chunks/app/(hamali)/hamali/earnings/page.js"
     ],
-    "/(driver)/driver/incoming/page": [
+    "/(hamali)/hamali/profile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(driver)/driver/incoming/page.js"
+      "static/chunks/app/(hamali)/hamali/profile/page.js"
     ],
-    "/(driver)/driver/earnings/page": [
+    "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(driver)/driver/earnings/page.js"
-    ],
-    "/(driver)/driver/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(driver)/driver/profile/page.js"
+      "static/chunks/app/login/page.js"
     ],
     "/_not-found/page": [
       "static/chunks/webpack.js",

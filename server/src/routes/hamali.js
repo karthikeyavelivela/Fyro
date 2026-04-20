@@ -1,11 +1,11 @@
 const express = require('express')
-const protect = require('../middleware/auth')
-const roleGuard = require('../middleware/roleGuard')
+const protect = require('../middleware/auth.js')
+const roleGuard = require('../middleware/roleGuard.js')
 const HamaliProfile = require('../models/HamaliProfile')
 const Booking = require('../models/Booking')
 const haversine = require('../utils/haversine')
 const findBooking = require('../utils/findBooking')
-const logger = require('../utils/logger')
+const logger = require('../utils/logger.js')
 
 const router = express.Router()
 
@@ -13,7 +13,7 @@ const router = express.Router()
 router.get('/incoming', protect, roleGuard('hamali'), async (req, res) => {
   try {
     const profile = await HamaliProfile.findOne({ workerId: req.user.userId })
-    if (!profile) return res.status(404).json({ success: false, message: 'Hamali profile not found' })
+    if (!profile) return res.json({ success: true, bookings: [], profile: null })
 
     const workerCoords = profile.currentLocation && profile.currentLocation.coordinates
       ? profile.currentLocation.coordinates
@@ -304,8 +304,7 @@ router.get('/bookings', protect, roleGuard('hamali'), async (req, res) => {
 router.get('/profile/mine', protect, roleGuard('hamali'), async (req, res) => {
   try {
     const profile = await HamaliProfile.findOne({ workerId: req.user.userId })
-    if (!profile) return res.status(404).json({ success: false, message: 'Profile not found' })
-    return res.json({ success: true, profile })
+    return res.json({ success: true, profile: profile || null })
   } catch (err) {
     logger.error('GET hamali/profile/mine: ' + err.message)
     return res.status(500).json({ success: false, message: 'Server error' })

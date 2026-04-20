@@ -11,3 +11,4 @@ yarn-error.log*
 /design
 /.code-review-graph
 /.claude
+.worktrees/

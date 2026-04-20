@@ -1,15 +1,16 @@
 const express = require('express')
-const protect = require('../middleware/auth')
-const roleGuard = require('../middleware/roleGuard')
+const protect = require('../middleware/auth.js')
+const roleGuard = require('../middleware/roleGuard.js')
 const Vehicle = require('../models/Vehicle')
 const HamaliProfile = require('../models/HamaliProfile')
 const Booking = require('../models/Booking')
 const User = require('../models/User')
+const Message = require('../models/Message')
 const haversine = require('../utils/haversine')
 const findBooking = require('../utils/findBooking')
 const { calculateFare } = require('../utils/fareEngine')
 const { generateBookingId } = require('../utils/generateId')
-const logger = require('../utils/logger')
+const logger = require('../utils/logger.js')
 
 const router = express.Router()
 
@@ -118,30 +119,34 @@ router.post('/bookings', protect, roleGuard('customer'), async (req, res) => {
       const vehicles = await Vehicle.find({ isAvailable: true, isVerified: true })
         .populate('driverId', 'name profilePhoto rating isActive')
 
-      nearbyProviders = vehicles
-        .filter(v => v.currentLocation?.coordinates?.length === 2 && v.driverId?.isActive !== false)
-        .map(v => ({
+      nearbyProviders = vehicles.filter(v => {
+        if (!v.currentLocation?.coordinates?.length || !v.driverId?._id || v.driverId?.isActive === false) return false
+        const [vLng, vLat] = v.currentLocation.coordinates
+        return haversine([pickup.lng, pickup.lat], [vLng, vLat]) <= 15
+      }).map(v => {
+        const [vLng, vLat] = v.currentLocation.coordinates
+        return {
           providerId: v.driverId._id,
           vehicle: v,
-          distanceKm: haversine(pickupCoords, v.currentLocation.coordinates)
-        }))
-        .filter(item => item.distanceKm <= 15)
+          distanceKm: haversine([pickup.lng, pickup.lat], [vLng, vLat])
+        }
+      })
     } else {
       const profiles = await HamaliProfile.find({ isAvailable: true, isVerified: true })
         .populate('workerId', 'name profilePhoto rating isActive')
 
-      nearbyProviders = profiles
-        .filter(p => p.currentLocation?.coordinates?.length === 2 && p.workerId?.isActive !== false)
-        .map(p => ({
+      nearbyProviders = profiles.filter(p => {
+        if (!p.currentLocation?.coordinates?.length || !p.workerId?._id || p.workerId?.isActive === false) return false
+        const [wLng, wLat] = p.currentLocation.coordinates
+        return haversine([pickup.lng, pickup.lat], [wLng, wLat]) <= 8
+      }).map(p => {
+        const [wLng, wLat] = p.currentLocation.coordinates
+        return {
           providerId: p.workerId._id,
           profile: p,
-          distanceKm: haversine(pickupCoords, p.currentLocation.coordinates)
-        }))
-        .filter(item => item.distanceKm <= 8)
-    }
-
-    if (nearbyProviders.length === 0) {
-      return res.status(400).json({ success: false, data: null, message: 'No providers available in your area' })
+          distanceKm: haversine([pickup.lng, pickup.lat], [wLng, wLat])
+        }
+      })
     }
 
     const bookingId = await generateBookingId()
@@ -174,24 +179,27 @@ router.post('/bookings', protect, roleGuard('customer'), async (req, res) => {
     if (scheduledAt) bookingData.scheduledAt = new Date(scheduledAt)
 
     const booking = await Booking.create(bookingData)
+    const populatedBooking = await Booking.findById(booking._id)
+      .populate('customerId', 'name phone profilePhoto rating')
+      .populate('providerId', 'name phone profilePhoto rating')
+      .populate('vehicleId')
 
     // Notify nearby providers via socket
     const io = req.app.get('io')
     nearbyProviders.forEach(provider => {
-      io.to(`user:${provider.providerId}`).emit('booking:new', {
-        bookingId: booking.bookingId,
-        pickup: booking.pickup,
-        dropoff: booking.dropoff,
-        fare: booking.estimatedFare,
-        vehicleType: booking.vehicleType,
+      const eventPayload = {
+        ...(populatedBooking?.toObject?.() || booking.toObject()),
         distanceKm: Math.round(provider.distanceKm * 10) / 10,
-        bookingType: booking.bookingType,
-        customerId: { name: req.user.name },
-        booking
-      })
+      }
+      io?.to(`user:${provider.providerId}`).emit('booking:new', eventPayload)
+      io?.to(String(provider.providerId)).emit('booking:new', eventPayload)
     })
 
-    return res.status(201).json({ success: true, booking })
+    const message = nearbyProviders.length === 0
+      ? 'Booking created. No nearby providers are online yet, but your request is live.'
+      : 'Booking created successfully'
+
+    return res.status(201).json({ success: true, booking: populatedBooking || booking, message, nearbyProviders: nearbyProviders.length })
   } catch (err) {
     logger.error('POST /bookings: ' + err.message)
     return res.status(500).json({ success: false, message: 'Server error' })
@@ -232,6 +240,73 @@ router.get('/bookings/my', protect, roleGuard('customer'), async (req, res) => {
   }
 })
 
+// GET /api/bookings/:id/messages
+router.get('/bookings/:id/messages', protect, roleGuard('customer', 'driver', 'hamali', 'admin'), async (req, res) => {
+  try {
+    const booking = await findBooking(req.params.id)
+    if (!booking) return res.status(404).json({ success: false, data: null, message: 'Booking not found' })
+
+    const userId = req.user.userId
+    const isAdmin = req.user.role === 'admin'
+    const isCustomer = booking.customerId?.toString() === userId
+    const isProvider = booking.providerId?.toString() === userId
+
+    if (!isAdmin && !isCustomer && !isProvider) {
+      return res.status(403).json({ success: false, data: null, message: 'Not authorized to view these messages' })
+    }
+
+    const messages = await Message.find({ bookingId: booking._id })
+      .populate('senderId', 'name profilePhoto role')
+      .sort({ createdAt: 1 })
+
+    return res.json({ success: true, data: messages, messages })
+  } catch (err) {
+    logger.error('GET /bookings/:id/messages: ' + err.message)
+    return res.status(500).json({ success: false, data: null, message: 'Server error' })
+  }
+})
+
+// POST /api/bookings/:id/messages
+router.post('/bookings/:id/messages', protect, roleGuard('customer', 'driver', 'hamali', 'admin'), async (req, res) => {
+  try {
+    const content = String(req.body?.content || '').trim()
+    if (!content) {
+      return res.status(400).json({ success: false, data: null, message: 'Content required' })
+    }
+
+    const booking = await findBooking(req.params.id)
+    if (!booking) return res.status(404).json({ success: false, data: null, message: 'Booking not found' })
+
+    const userId = req.user.userId
+    const isAdmin = req.user.role === 'admin'
+    const isCustomer = booking.customerId?.toString() === userId
+    const isProvider = booking.providerId?.toString() === userId
+
+    if (!isAdmin && !isCustomer && !isProvider) {
+      return res.status(403).json({ success: false, data: null, message: 'Not authorized' })
+    }
+
+    const message = await Message.create({
+      bookingId: booking._id,
+      senderId: userId,
+      content,
+      type: 'text'
+    })
+
+    const populated = await Message.findById(message._id).populate('senderId', 'name profilePhoto role')
+    const io = req.app.get('io')
+    io?.to(`booking:${booking.bookingId}`).emit('message:new', populated)
+    io?.to(booking.bookingId).emit('message:new', populated)
+    io?.to(`booking:${req.params.id}`).emit('message:new', populated)
+    io?.to(req.params.id).emit('message:new', populated)
+
+    return res.status(201).json({ success: true, data: populated, message: populated })
+  } catch (err) {
+    logger.error('POST /bookings/:id/messages: ' + err.message)
+    return res.status(500).json({ success: false, data: null, message: 'Server error' })
+  }
+})
+
 // GET /api/bookings/:id
 router.get('/bookings/:id', protect, roleGuard('customer', 'driver', 'hamali', 'admin'), async (req, res) => {
   try {
@@ -251,7 +326,7 @@ router.get('/bookings/:id', protect, roleGuard('customer', 'driver', 'hamali', '
       return res.status(403).json({ success: false, message: 'Forbidden' })
     }
 
-    return res.json({ success: true, booking })
+    return res.json({ success: true, booking, data: { booking } })
   } catch (err) {
     logger.error('GET /bookings/:id: ' + err.message)
     return res.status(500).json({ success: false, message: 'Server error' })

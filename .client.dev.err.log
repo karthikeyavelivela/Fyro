@@ -1,0 +1,64 @@
+(node:39296) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[Error: ENOENT: no such file or directory, stat 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\cache\webpack\server-development\6.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'C:\\Users\\veliv\\Desktop\\Fyro\\client\\.next-dev\\cache\\webpack\\server-development\\6.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\cache\webpack\server-development\6.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'C:\\Users\\veliv\\Desktop\\Fyro\\client\\.next-dev\\cache\\webpack\\server-development\\6.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\cache\webpack\server-development\6.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'C:\\Users\\veliv\\Desktop\\Fyro\\client\\.next-dev\\cache\\webpack\\server-development\\6.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\cache\webpack\server-development\3.pack.gz'
+[Error: ENOENT: no such file or directory, stat 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\cache\webpack\client-development\0.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'C:\\Users\\veliv\\Desktop\\Fyro\\client\\.next-dev\\cache\\webpack\\client-development\\0.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\cache\webpack\client-development\0.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'C:\\Users\\veliv\\Desktop\\Fyro\\client\\.next-dev\\cache\\webpack\\client-development\\0.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\cache\webpack\client-development\0.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'C:\\Users\\veliv\\Desktop\\Fyro\\client\\.next-dev\\cache\\webpack\\client-development\\0.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\cache\webpack\client-development\0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\server\app'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next-dev/server/app/_not-found/page' in C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\server\app\_not-found\page.js', but to 'Error: Can't resolve '../../../../.next-dev/server/app/_not-found/page' in 'C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next-dev/server/app/_not-found/page (expected C:\Users\veliv\Desktop\Fyro\client\.next-dev\server\app\_not-found\page.js)
+<w>  at file dependencies C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server\require.js
+<w>  at file C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server\require.js
+<w>  at file dependencies C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server\load-components.js
+<w>  at file C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\utils.js
+<w>  at file C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\utils.js
+<w>  at file dependencies C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at resolve commonjs C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next-dev/server/pages/_error' in C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'C:\Users\veliv\Desktop\Fyro\client\.next-dev\server\pages\_error.js', but to 'Error: Can't resolve '../../../../.next-dev/server/pages/_error' in 'C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next-dev/server/pages/_error (expected C:\Users\veliv\Desktop\Fyro\client\.next-dev\server\pages\_error.js)
+<w>  at file dependencies C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server\require.js
+<w>  at file C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server\require.js
+<w>  at file dependencies C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server\load-components.js
+<w>  at file C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\utils.js
+<w>  at file C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\utils.js
+<w>  at file dependencies C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at resolve commonjs C:\Users\veliv\Desktop\Fyro\client\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js

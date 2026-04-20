@@ -92,14 +92,28 @@ export default function LiveTrackingMapInner({ pickup, dropoff, driverLocation, 
     }
   }, [])
 
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    if (pickup && markersRef.current.pickup) {
+      markersRef.current.pickup.setLatLng([pickup.lat, pickup.lng]).bindPopup(pickup.address || 'Pickup')
+      mapRef.current.setView([pickup.lat, pickup.lng], 15, { animate: true })
+    }
+
+    if (dropoff && markersRef.current.dropoff) {
+      markersRef.current.dropoff.setLatLng([dropoff.lat, dropoff.lng]).bindPopup(dropoff.address || 'Dropoff')
+    }
+  }, [pickup, dropoff])
+
   // Update driver location with smooth interpolation
   useEffect(() => {
     if (!driverLocation || !mapRef.current) return
     targetDriverPos.current = driverLocation
 
     // Update ETA
-    if (pickup) {
-      const dist = haversine(driverLocation, pickup)
+    if (dropoff || pickup) {
+      const destination = dropoff || pickup
+      const dist = haversine(driverLocation, destination!)
       const etaMins = Math.round((dist / 30) * 60)
       setEta(etaMins <= 1 ? '< 1 min' : `${etaMins} min`)
     }
@@ -122,7 +136,7 @@ export default function LiveTrackingMapInner({ pickup, dropoff, driverLocation, 
 
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
     animFrameRef.current = requestAnimationFrame(animate)
-  }, [driverLocation, pickup])
+  }, [driverLocation, pickup, dropoff])
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>

@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { Home, Plus, Clock, User, Truck, TrendingUp, Briefcase } from 'lucide-react'
+import { Home, Plus, Clock, User, TrendingUp, Briefcase } from 'lucide-react'
 
 type Role = 'customer' | 'driver' | 'hamali' | 'admin'
 type NavItem = { label: string; path: string; icon: any }
@@ -22,7 +22,7 @@ const TABS: Record<Role, NavItem[]> = {
   ],
   driver: [
     { label: 'Home', path: '/driver', icon: Home },
-    { label: 'Jobs', path: '/driver/incoming', icon: Truck },
+    { label: 'Jobs', path: '/driver/incoming', icon: Briefcase },
     { label: 'Earnings', path: '/driver/earnings', icon: TrendingUp },
     { label: 'Profile', path: '/driver/profile', icon: User },
   ],
@@ -53,28 +53,24 @@ export default function BottomNav({ role, activePath, admin, items, accent }: Pr
 
   return (
     <nav style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-      height: 72, background: 'rgba(255,255,255,0.94)',
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: '64px',
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      background: 'var(--surface)',
       borderTop: '1px solid var(--border)',
-      paddingBottom: 'max(0px, env(safe-area-inset-bottom))',
-      display: 'flex', alignItems: 'stretch',
-      backdropFilter: 'blur(18px)'
+      display: 'flex',
+      zIndex: 50
     }}>
-      {tabs.slice(0, 5).map(({ label, path, icon: Icon }) => {
+      {tabs.slice(0, 4).map(({ label, path, icon: Icon }) => {
         const isPrimaryRoot = path === '/dashboard' || path === '/driver' || path === '/hamali' || path === '/admin'
         const isActive = activePath === path || (!isPrimaryRoot && activePath.startsWith(path))
         return (
-          <Link key={path} href={path} style={{ flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 56, position: 'relative' }}>
-            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <Icon size={20} color={isActive ? activeColor : 'var(--text-faint)'} strokeWidth={isActive ? 2.2 : 1.8} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? activeColor : 'var(--text-faint)' }}>{admin && label === 'Overview' ? 'Home' : label}</span>
-              {isActive && (
-                <div style={{
-                  position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)',
-                  width: 22, height: 3, background: activeColor, borderRadius: 2
-                }} />
-              )}
-            </div>
+          <Link key={path} href={path} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: isActive ? activeColor : 'var(--text-faint)', textDecoration: 'none', fontSize: '11px', fontFamily: 'Outfit, sans-serif', fontWeight: isActive ? 600 : 400 }}>
+            <Icon size={22} />
+            {admin && label === 'Dashboard' ? 'Home' : label}
           </Link>
         )
       })}

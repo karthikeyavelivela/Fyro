@@ -27,8 +27,8 @@ module.exports = {
         red: 'var(--red)',
       },
       fontFamily: {
-        sans: ['Outfit', 'sans-serif'],
-        display: ['Syne', 'sans-serif'],
+        sans: ['var(--font-outfit)', 'sans-serif'],
+        display: ['var(--font-syne)', 'sans-serif'],
       },
       borderRadius: {
         sm: 'var(--radius-sm)',

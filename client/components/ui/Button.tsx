@@ -37,6 +37,7 @@ export default function Button({ variant = 'primary', size = 'md', loading, chil
     <motion.button
       whileHover={{ y: -2, boxShadow: 'var(--shadow-md)' }}
       whileTap={{ scale: 0.97 }}
+      transition={{ duration: 0.15 }}
       style={{ ...base, ...variants[variant], ...sizes[size], ...style }}
       disabled={disabled || loading}
       className={className}

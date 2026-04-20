@@ -27,6 +27,17 @@ function formatTime(iso?: string) {
   return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
 }
 
+function normalizeMessage(payload: any): Message | null {
+  const raw = payload?.message ?? payload
+  if (!raw || typeof raw !== 'object') return null
+  const sender = raw.senderId
+  return {
+    ...raw,
+    senderId: typeof sender === 'string' ? sender : sender?._id,
+    senderRole: raw.senderRole || sender?.role,
+  }
+}
+
 export default function ChatBox({ bookingId, currentUserId, currentUserRole }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -35,12 +46,15 @@ export default function ChatBox({ bookingId, currentUserId, currentUserRole }: P
 
   useEffect(() => {
     api.get(`/api/bookings/${bookingId}/messages`).then(res => {
-      setMessages(ensureArray<Message>(res.data?.messages ?? res.data?.data?.messages ?? res.data?.data ?? res.data))
+      const list = ensureArray<any>(res.data?.messages ?? res.data?.data?.messages ?? res.data?.data ?? res.data)
+      setMessages(list.map(normalizeMessage).filter(Boolean) as Message[])
     }).catch(() => {})
 
     socket.emit('join:booking', { bookingId })
-    socket.on('message:new', (msg: Message) => {
-      setMessages(prev => [...prev, msg])
+    socket.on('message:new', (payload: any) => {
+      const msg = normalizeMessage(payload)
+      if (!msg) return
+      setMessages(prev => prev.some(existing => existing._id === msg._id) ? prev : [...prev, msg])
     })
     return () => { socket.off('message:new') }
   }, [bookingId])
@@ -55,7 +69,6 @@ export default function ChatBox({ bookingId, currentUserId, currentUserRole }: P
     const content = input.trim()
     setInput('')
     try {
-      socket.emit('message:send', { bookingId, content })
       await api.post(`/api/bookings/${bookingId}/messages`, { content })
     } catch {
       setInput(content)
@@ -88,7 +101,7 @@ export default function ChatBox({ bookingId, currentUserId, currentUserRole }: P
           const showSender = !own && (i === 0 || prevMsg?.senderId !== msg.senderId)
 
           return (
-            <motion.div key={msg._id || i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            <motion.div key={msg._id || i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               style={{ display: 'flex', flexDirection: 'column', alignItems: own ? 'flex-end' : 'flex-start' }}>
               {showSender && (
                 <span style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 3, paddingLeft: 4 }}>
@@ -129,7 +142,7 @@ export default function ChatBox({ bookingId, currentUserId, currentUserRole }: P
             borderRadius: 999, padding: '10px 16px', fontSize: 15, outline: 'none', fontFamily: 'Outfit, sans-serif'
           }}
         />
-        <motion.button whileTap={{ scale: 0.92 }} onClick={sendMessage} disabled={sending || !input.trim()}
+        <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} transition={{ duration: 0.15 }} onClick={sendMessage} disabled={sending || !input.trim()}
           style={{
             width: 42, height: 42, borderRadius: '50%', background: 'var(--accent)', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',

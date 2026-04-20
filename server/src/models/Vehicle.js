@@ -20,4 +20,4 @@ const vehicleSchema = new mongoose.Schema({
 
 vehicleSchema.index({ currentLocation: '2dsphere' })
 
-module.exports = mongoose.model('Vehicle', vehicleSchema)
+module.exports = mongoose.models.Vehicle || mongoose.model('Vehicle', vehicleSchema)
