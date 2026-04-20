@@ -21,7 +21,7 @@ export default function DriverEarningsPage() {
           api.get('/api/driver/earnings'),
           api.get('/api/driver/bookings?status=completed&limit=30')
         ])
-        setEarnings(earningsRes.data)
+        setEarnings(earningsRes.data.earnings || earningsRes.data)
         setBookings(bookingsRes.data.bookings || [])
       } finally {
         setLoading(false)
