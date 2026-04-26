@@ -651,9 +651,6 @@ input, select, textarea {
 .mt-2{
   margin-top: 0.5rem;
 }
-.mt-3{
-  margin-top: 0.75rem;
-}
 .mt-6{
   margin-top: 1.5rem;
 }
@@ -1459,7 +1456,7 @@ input, select, textarea {
   border-top-left-radius: 36px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1023px) {
   .app-shell,
   .admin-shell {
     grid-template-columns: 1fr;
@@ -1467,7 +1464,11 @@ input, select, textarea {
 
   .app-sidebar,
   .admin-sidebar {
-    display: none;
+    display: none !important;
+  }
+
+  .app-content {
+    margin-left: 0 !important;
   }
 
   .app-topbar,
@@ -1488,6 +1489,13 @@ input, select, textarea {
 
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Hide bottom nav on desktop */
+  nav[style*="position: fixed"] {
+    display: none !important;
   }
 }
 
@@ -1550,6 +1558,20 @@ input, select, textarea {
   50% {
     box-shadow: 0 0 0 14px rgba(255, 107, 43, 0);
   }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: pulse-ring 1.8s ease-out infinite;
 }
 
 @media (min-width: 768px){

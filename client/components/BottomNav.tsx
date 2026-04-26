@@ -68,6 +68,7 @@ export default function BottomNav({ role, activePath, admin, items, accent }: Pr
         const isPrimaryRoot = path === '/dashboard' || path === '/driver' || path === '/hamali' || path === '/admin'
         const isActive = activePath === path || (!isPrimaryRoot && activePath.startsWith(path))
         return (
+
           <Link key={path} href={path} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: isActive ? activeColor : 'var(--text-faint)', textDecoration: 'none', fontSize: '11px', fontFamily: 'Outfit, sans-serif', fontWeight: isActive ? 600 : 400 }}>
             <Icon size={22} />
             {admin && label === 'Dashboard' ? 'Home' : label}
@@ -75,7 +76,7 @@ export default function BottomNav({ role, activePath, admin, items, accent }: Pr
         )
       })}
       <style jsx>{`
-        @media (min-width: 981px) {
+        @media (min-width: 1024px) {
           nav {
             display: none !important;
           }

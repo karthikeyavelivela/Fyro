@@ -166,4 +166,72 @@ router.get('/me', protect, async (req, res) => {
   }
 })
 
+// PUT /api/auth/profile
+router.put('/profile', protect, async (req, res) => {
+  try {
+    const { name, email, phone, language, profilePhoto } = req.body
+    const updateFields = {}
+
+    if (name !== undefined) updateFields.name = name.trim()
+    if (phone !== undefined) updateFields.phone = phone
+    if (language !== undefined) updateFields.language = language
+    if (profilePhoto !== undefined) updateFields.profilePhoto = profilePhoto
+
+    if (email !== undefined) {
+      const normalizedEmail = email.toLowerCase()
+      const existingUser = await User.findOne({ email: normalizedEmail, _id: { $ne: req.user.userId } })
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: 'Email already in use' })
+      }
+      updateFields.email = normalizedEmail
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.userId,
+      updateFields,
+      { new: true }
+    ).select('-passwordHash')
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
+    return res.json({ success: true, user: userResponse(updatedUser) })
+  } catch (err) {
+    logger.error('Profile update error: ' + err.message)
+    return res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+// PUT /api/auth/password
+router.put('/password', protect, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current password and new password are required' })
+    }
+
+    const user = await User.findById(req.user.userId).select('+passwordHash')
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash)
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' })
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12)
+    user.passwordHash = hashedNewPassword
+    await user.save()
+
+    logger.info(`Password changed for user: ${user._id}`)
+    return res.json({ success: true, message: 'Password changed successfully' })
+  } catch (err) {
+    logger.error('Password change error: ' + err.message)
+    return res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
 module.exports = router

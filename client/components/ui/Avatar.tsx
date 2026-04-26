@@ -5,6 +5,7 @@ interface Props {
   src?: string
   name?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  role?: 'customer' | 'driver' | 'hamali' | 'admin'
 }
 
 const SIZES = { sm: 32, md: 48, lg: 64, xl: 80 }
@@ -20,14 +21,21 @@ function initials(name: string): string {
   return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
 }
 
-export default function Avatar({ src, name, size = 'md' }: Props) {
+function getRoleColor(role?: string): string {
+  if (role === 'hamali') return '#0D9488'  // teal
+  return '#FF6B2B'  // orange for customer, driver, admin, and fallback
+}
+
+export default function Avatar({ src, name, size = 'md', role }: Props) {
   const px = SIZES[size]
-  const safeName = (name || 'FYRO User').trim() || 'FYRO User'
+  const safeName = (name || '').trim()
+  const label = safeName ? initials(safeName) : '?'
+  const bg = role ? getRoleColor(role) : (safeName ? hashColor(safeName) : '#FF6B2B')
 
   if (src) {
     return (
       <div style={{ width: px, height: px, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-        <Image src={src} alt={safeName} width={px} height={px} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+        <Image src={src} alt={safeName || 'avatar'} width={px} height={px} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
       </div>
     )
   }
@@ -35,11 +43,11 @@ export default function Avatar({ src, name, size = 'md' }: Props) {
   return (
     <div style={{
       width: px, height: px, borderRadius: '50%', flexShrink: 0,
-      background: hashColor(safeName), display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
       color: 'white', fontFamily: 'var(--font-display)', fontWeight: 700,
       fontSize: px * 0.35
     }}>
-      {initials(safeName)}
+      {label}
     </div>
   )
 }

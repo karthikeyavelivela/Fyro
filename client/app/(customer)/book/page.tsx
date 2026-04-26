@@ -64,6 +64,7 @@ function BookPageInner() {
   const [teamSize, setTeamSize] = useState(2)
   const [providers, setProviders] = useState<any[]>([])
   const [loadingProviders, setLoadingProviders] = useState(false)
+  const [providersError, setProvidersError] = useState<string | null>(null)
   const [selectedProvider, setSelectedProvider] = useState<any>(null)
   const [booking, setBooking] = useState<any>(null)
 
@@ -166,8 +167,9 @@ function BookPageInner() {
     }, 400)
   }
 
-  const goToProviders = async () => {
+  const findProviders = async () => {
     setLoadingProviders(true)
+    setProvidersError(null)
     setSelectedProvider(null)
     try {
       if (!pickup || (bookingType === 'transport' && !dropoff)) {
@@ -178,13 +180,17 @@ function BookPageInner() {
       const params = bookingType === 'transport'
         ? { lat: pickup.lat, lng: pickup.lng, type: vehicleType }
         : { lat: pickup.lat, lng: pickup.lng }
-      const { data } = await api.get(endpoint, { params })
-      const raw = data?.vehicles || data?.profiles || data?.providers || data?.data?.vehicles || data?.data?.profiles || data?.data?.providers || []
-      setProviders(normalizeProviders(Array.isArray(raw) ? raw : []))
+      const res = await api.get(endpoint, { params })
+      const data = res.data
+      const raw = data?.vehicles || data?.profiles || data?.providers || data?.data?.vehicles || data?.data?.profiles || data?.data?.providers || data?.data || []
+      const list = normalizeProviders(Array.isArray(raw) ? raw : [])
+      setProviders(list)
+      if (list.length === 0) {
+        setProvidersError('No drivers available nearby. Try a different location or vehicle type.')
+      }
       setStep(3)
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to fetch providers')
-      setProviders([])
+      setProvidersError('Could not find drivers right now. Please try again.')
       setStep(3)
     } finally {
       setLoadingProviders(false)
@@ -316,7 +322,7 @@ function BookPageInner() {
                     <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{distanceKm.toFixed(1)} km</span>
                     <span className="fare-number" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: 'var(--orange)' }}>₹{estimatedFare}</span>
                   </div>
-                  <button onClick={goToProviders} disabled={!pickup || !dropoff} style={{ width: '100%', height: 52, background: 'var(--orange)', color: '#fff', borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600, cursor: !pickup || !dropoff ? 'not-allowed' : 'pointer', opacity: !pickup || !dropoff ? 0.5 : 1 }}>
+                  <button onClick={findProviders} disabled={!pickup || !dropoff} style={{ width: '100%', height: 52, background: 'var(--orange)', color: '#fff', borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600, cursor: !pickup || !dropoff ? 'not-allowed' : 'pointer', opacity: !pickup || !dropoff ? 0.5 : 1 }}>
                     Find providers <ArrowRight size={16} style={{ display: 'inline', marginLeft: 6 }} />
                   </button>
                 </div>
@@ -374,7 +380,7 @@ function BookPageInner() {
                   <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{jobType}</span>
                   <span className="fare-number" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: 'var(--teal)' }}>₹{estimatedFare}</span>
                 </div>
-                <button onClick={goToProviders} disabled={!pickup} style={{ width: '100%', height: 52, background: 'var(--teal)', color: '#fff', borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600, cursor: !pickup ? 'not-allowed' : 'pointer', opacity: !pickup ? 0.5 : 1 }}>
+                <button onClick={findProviders} disabled={!pickup} style={{ width: '100%', height: 52, background: 'var(--teal)', color: '#fff', borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600, cursor: !pickup ? 'not-allowed' : 'pointer', opacity: !pickup ? 0.5 : 1 }}>
                   Find providers <ArrowRight size={16} style={{ display: 'inline', marginLeft: 6 }} />
                 </button>
               </div>
@@ -392,6 +398,17 @@ function BookPageInner() {
               {loadingProviders ? (
                 <div style={{ display: 'grid', gap: 12 }}>
                   {[1, 2, 3].map((i) => <Skeleton key={i} height={140} style={{ borderRadius: 16 }} />)}
+                </div>
+              ) : providersError ? (
+                <div style={{ textAlign:'center', padding:'32px 20px' }}>
+                  <div style={{ fontSize:'40px', marginBottom:'12px' }}>🚫</div>
+                  <h3 style={{ fontFamily:'Syne', fontWeight:700, fontSize:'18px' }}>
+                    {providersError}
+                  </h3>
+                  <button onClick={findProviders}
+                    style={{ marginTop:'16px', background:'var(--orange)', color:'white', border:'none', borderRadius:'999px', padding:'10px 24px', cursor:'pointer' }}>
+                    Try Again
+                  </button>
                 </div>
               ) : providers.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px 0', background: '#fff', borderRadius: 16, border: '1px solid var(--border-light)' }}>

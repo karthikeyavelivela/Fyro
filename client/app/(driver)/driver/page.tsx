@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, Truck } from 'lucide-react'
 
-const DriverAvatar3D = dynamic(() => import('@/components/3d/DriverAvatar3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { ensureArray } from '@/lib/ensureArray'
@@ -111,9 +110,7 @@ export default function DriverHomePage() {
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="page-shell compact page-stack">
       <motion.section variants={fadeUp} custom={0} className="surface-panel panel-pad" style={{ position: 'relative' }}>
-        <div style={{ position: 'absolute', top: -10, right: 12, width: 115, height: 135, pointerEvents: 'none', zIndex: 2 }}>
-          <DriverAvatar3D />
-        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', paddingRight: 120 }}>
           <div>
             <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Driver Workspace</p>

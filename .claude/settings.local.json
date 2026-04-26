@@ -10,7 +10,14 @@
       "Read(//c/Users/veliv/Downloads/**)",
       "Bash(unzip -l \"C:/Users/veliv/Downloads/Fyro.zip\")",
       "Bash(mkdir -p \"C:/Users/veliv/Desktop/Fyro/design\")",
-      "Bash(unzip -o \"C:/Users/veliv/Downloads/Fyro.zip\")"
+      "Bash(unzip -o \"C:/Users/veliv/Downloads/Fyro.zip\")",
+      "Bash(git check-ignore *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(grep \"\\\\.ts$\")",
+      "Bash(git -C .worktrees/premium-upgrade log --oneline -10)",
+      "Bash(npx next *)",
+      "Bash(git worktree *)"
     ]
   }
 }

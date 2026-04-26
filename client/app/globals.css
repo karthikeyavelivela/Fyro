@@ -567,7 +567,7 @@ body {
   border-top-left-radius: 36px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1023px) {
   .app-shell,
   .admin-shell {
     grid-template-columns: 1fr;
@@ -575,7 +575,11 @@ body {
 
   .app-sidebar,
   .admin-sidebar {
-    display: none;
+    display: none !important;
+  }
+
+  .app-content {
+    margin-left: 0 !important;
   }
 
   .app-topbar,
@@ -596,6 +600,13 @@ body {
 
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Hide bottom nav on desktop */
+  nav[style*="position: fixed"] {
+    display: none !important;
   }
 }
 

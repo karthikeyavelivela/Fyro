@@ -29,6 +29,7 @@ export default function ProfilePage() {
   const [editEmail, setEditEmail] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [lang, setLang] = useState<Lang>('EN')
   const [saving, setSaving] = useState(false)
   const [currentPw, setCurrentPw] = useState('')
@@ -46,7 +47,7 @@ export default function ProfilePage() {
   useEffect(() => {
     api.get('/api/auth/me').then(res => {
       const u = res.data?.user || res.data
-      setUser(u); setName(u.name || ''); setEmail(u.email || ''); setLang((u.language as Lang) || 'EN')
+      setUser(u); setName(u.name || ''); setEmail(u.email || ''); setPhone(u.phone || ''); setLang((u.language as Lang) || 'EN')
     }).catch(() => toast.error('Failed to load profile')).finally(() => setLoading(false))
   }, [])
 
@@ -197,7 +198,7 @@ export default function ProfilePage() {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <Avatar name={name} src={user?.photo} size="xl" />
+          <Avatar name={name} src={user?.photo} size="xl" role="customer" />
         </div>
         <div className="syne" style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, marginTop: 12, letterSpacing: '-0.01em' }}>
           {name || 'User'}
@@ -297,48 +298,42 @@ export default function ProfilePage() {
                       >
                         <div style={{ padding: 16, borderTop: '1px solid var(--divider)' }}>
                           {item.key === 'personal' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                              {/* Name */}
+                            <div style={{ padding:'16px', display:'flex', flexDirection:'column', gap:'16px' }}>
                               <div>
-                                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Full name</label>
-                                {editName ? (
-                                  <div style={{ display: 'flex', gap: 6 }}>
-                                    <input ref={nameInputRef} value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
-                                    <button onClick={() => saveField('name', name)} disabled={saving} style={{ padding: '0 14px', borderRadius: 12, background: 'var(--orange)', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Save</button>
-                                    <button onClick={() => { setEditName(false); setName(user?.name || '') }} style={{ padding: '0 10px', borderRadius: 12, background: '#fff', border: '1px solid var(--border-light)', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid var(--border-light)', borderRadius: 12, padding: '12px 14px' }}>
-                                    <span style={{ fontSize: 15 }}>{name}</span>
-                                    <button onClick={() => setEditName(true)} style={{ background: 'none', border: 'none', color: 'var(--orange)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
-                                  </div>
-                                )}
+                                <label style={{ fontSize:'12px', color:'var(--text-muted)', fontFamily:'Outfit', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                                  Full Name
+                                </label>
+                                <input
+                                  value={name}
+                                  onChange={e => setName(e.target.value)}
+                                  style={{ width:'100%', padding:'10px 14px', border:'1px solid var(--border-light)', borderRadius:'10px', fontFamily:'Outfit', fontSize:'15px', background:'var(--bg)', color:'var(--text)', marginTop:'6px' }}
+                                />
                               </div>
-
-                              {/* Phone */}
+                              
                               <div>
-                                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Phone</label>
-                                <div style={{ background: '#fff', border: '1px solid var(--border-light)', borderRadius: 12, padding: '12px 14px', fontSize: 15, color: 'var(--text-muted)' }}>
-                                  {user?.phone || 'Not set'}
-                                </div>
+                                <label style={{ fontSize:'12px', color:'var(--text-muted)', fontFamily:'Outfit', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                                  Phone Number
+                                </label>
+                                <input
+                                  value={phone}
+                                  onChange={e => setPhone(e.target.value)}
+                                  style={{ width:'100%', padding:'10px 14px', border:'1px solid var(--border-light)', borderRadius:'10px', fontFamily:'Outfit', fontSize:'15px', background:'var(--bg)', color:'var(--text)', marginTop:'6px' }}
+                                />
                               </div>
-
-                              {/* Email */}
-                              <div>
-                                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Email</label>
-                                {editEmail ? (
-                                  <div style={{ display: 'flex', gap: 6 }}>
-                                    <input ref={emailInputRef} type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
-                                    <button onClick={() => saveField('email', email)} disabled={saving} style={{ padding: '0 14px', borderRadius: 12, background: 'var(--orange)', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Save</button>
-                                    <button onClick={() => { setEditEmail(false); setEmail(user?.email || '') }} style={{ padding: '0 10px', borderRadius: 12, background: '#fff', border: '1px solid var(--border-light)', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid var(--border-light)', borderRadius: 12, padding: '12px 14px' }}>
-                                    <span style={{ fontSize: 15 }}>{email || '—'}</span>
-                                    <button onClick={() => setEditEmail(true)} style={{ background: 'none', border: 'none', color: 'var(--orange)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
-                                  </div>
-                                )}
-                              </div>
+                              
+                              <button
+                                onClick={async()=>{
+                                  try {
+                                    await api.put('/api/auth/profile', { name, phone })
+                                    toast.success('Profile updated')
+                                    setUser((prev: any) => ({ ...prev, name, phone }))
+                                  } catch {
+                                    toast.error('Failed to update profile')
+                                  }
+                                }}
+                                style={{ background:'var(--orange)', color:'white', border:'none', borderRadius:'999px', padding:'10px 24px', fontFamily:'Outfit', fontWeight:600, cursor:'pointer' }}>
+                                Save Changes
+                              </button>
                             </div>
                           )}
 

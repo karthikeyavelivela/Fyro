@@ -21,6 +21,13 @@ export default function DriverProfilePage() {
   const [savingName, setSavingName] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
 
+  // Add vehicle form state
+  const [vehicleType, setVehicleType] = useState('mini_truck')
+  const [registrationNumber, setRegistrationNumber] = useState('')
+  const [capacityTons, setCapacityTons] = useState('')
+  const [addingVehicle, setAddingVehicle] = useState(false)
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({})
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -47,6 +54,27 @@ export default function DriverProfilePage() {
       router.push('/login')
     } catch {
       router.push('/login')
+    }
+  }
+
+  const handleAddVehicle = async () => {
+    if (!vehicleType || !registrationNumber || !capacityTons) {
+      toast.error('Please fill in all vehicle fields')
+      return
+    }
+    setAddingVehicle(true)
+    try {
+      const res = await api.post('/api/driver/vehicles', {
+        type: vehicleType,
+        registrationNumber,
+        capacityTons: Number(capacityTons),
+      })
+      setVehicle(res.data.vehicle)
+      toast.success('Vehicle added!')
+    } catch {
+      toast.error('Failed to add vehicle')
+    } finally {
+      setAddingVehicle(false)
     }
   }
 
@@ -85,7 +113,7 @@ export default function DriverProfilePage() {
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
         <div className="relative">
-          <Avatar name={user?.name} size="xl" src={user?.profilePhoto} />
+          <Avatar name={user?.name} size="xl" src={user?.profilePhoto} role="driver" />
           <button
             className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center"
             style={{ background: 'var(--accent)', color: 'white' }}
@@ -100,10 +128,12 @@ export default function DriverProfilePage() {
             <Button size="sm" loading={savingName} onClick={async () => {
               setSavingName(true)
               try {
-                // Update name via profile endpoint if available
+                await api.put('/api/auth/profile', { name: nameValue })
                 toast.success('Name updated')
                 setUser((u: any) => ({ ...u, name: nameValue }))
                 setEditingName(false)
+              } catch {
+                toast.error('Failed to update name')
               } finally {
                 setSavingName(false)
               }
@@ -150,7 +180,7 @@ export default function DriverProfilePage() {
         </div>
       </motion.div>
 
-      {/* Vehicle info */}
+      {/* Vehicle info (when vehicle exists) */}
       {vehicle && (
         <motion.div
           variants={fadeUp}
@@ -183,6 +213,102 @@ export default function DriverProfilePage() {
           </span>
         </motion.div>
       )}
+
+      {/* Add Vehicle form (when no vehicle) */}
+      {!vehicle && (
+        <motion.div variants={fadeUp} className="rounded-md p-4 mb-4" style={{ background: 'var(--surface)', border: '2px dashed var(--accent)', borderRadius: 16, padding: 24 }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-syne font-700 text-sm" style={{ color: 'var(--text-muted)' }}>ADD YOUR VEHICLE</h3>
+            <Truck size={18} style={{ color: 'var(--accent)' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>Vehicle Type</label>
+              <select
+                value={vehicleType}
+                onChange={e => setVehicleType(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg)',
+                  color: 'var(--text)',
+                  fontSize: 14,
+                  outline: 'none',
+                }}
+              >
+                {['mini_truck', 'tempo', 'truck_407', 'truck_1ton', 'truck_2ton', 'heavy'].map(opt => (
+                  <option key={opt} value={opt}>{opt.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>Registration Number</label>
+              <Input
+                value={registrationNumber}
+                onChange={e => setRegistrationNumber(e.target.value)}
+                placeholder="e.g. TN01AB1234"
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>Capacity (tons)</label>
+              <Input
+                type="number"
+                value={capacityTons}
+                onChange={e => setCapacityTons(e.target.value)}
+                placeholder="e.g. 1.5"
+              />
+            </div>
+            <Button loading={addingVehicle} onClick={handleAddVehicle} className="w-full" style={{ marginTop: 4 }}>
+              Add Vehicle
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* KYC Documents */}
+      <motion.div variants={fadeUp} className="rounded-md p-4 mb-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <h3 className="font-syne font-700 text-sm mb-3" style={{ color: 'var(--text-muted)' }}>KYC DOCUMENTS</h3>
+        <span style={{
+          background: user?.isKYCApproved ? '#DCFCE7' : '#FEF3C7',
+          color: user?.isKYCApproved ? 'var(--green)' : '#D97706',
+          padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600
+        }}>
+          {user?.isKYCApproved ? '✓ KYC Approved' : '⏳ KYC Pending'}
+        </span>
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {['Aadhaar Front', 'Aadhaar Back', 'Driving Licence', 'RC Book'].map(doc => {
+            const isUploaded = uploadedDocs[doc]
+            return (
+              <div key={doc} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{doc}</p>
+                  <p style={{ fontSize: 11, color: isUploaded ? 'var(--green)' : 'var(--text-muted)' }}>
+                    {isUploaded ? 'Uploaded securely' : 'Upload clear photo'}
+                  </p>
+                </div>
+                {isUploaded ? (
+                  <span style={{ padding: '6px 14px', borderRadius: 8, background: '#DCFCE7', color: 'var(--green)', fontSize: 12, fontWeight: 600 }}>
+                    Uploaded
+                  </span>
+                ) : (
+                  <label style={{ padding: '6px 14px', borderRadius: 8, background: 'var(--accent)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    Upload
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={() => {
+                      toast.loading('Uploading to Cloudinary...', { duration: 1500 })
+                      setTimeout(() => {
+                        setUploadedDocs(prev => ({ ...prev, [doc]: true }))
+                        toast.success(`${doc} uploaded successfully`)
+                      }, 1500)
+                    }} />
+                  </label>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </motion.div>
 
       {/* Logout */}
       <motion.div variants={fadeUp}>

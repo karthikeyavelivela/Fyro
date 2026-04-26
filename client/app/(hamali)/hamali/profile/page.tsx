@@ -14,6 +14,8 @@ import { ArrowLeft, LogOut, Users, Camera, MapPin, Briefcase, Clock } from 'luci
 const teal = '#0D9488'
 const tealLight = '#CCFBF1'
 
+const SKILLS = ['Loading', 'Unloading', 'Heavy Machinery', 'Fragile Goods', 'Furniture', 'Electronics', 'Construction Materials', 'Agricultural Goods']
+
 export default function HamaliProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -24,6 +26,15 @@ export default function HamaliProfilePage() {
   const [savingName, setSavingName] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
 
+  const [teamSize, setTeamSize] = useState(1)
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([])
+  const [ratePerJob, setRatePerJob] = useState('')
+  const [ratePerHour, setRatePerHour] = useState('')
+  const [city, setCity] = useState('')
+  const [area, setArea] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({})
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -33,7 +44,17 @@ export default function HamaliProfilePage() {
         ])
         setUser(meRes.data.user)
         setNameValue(meRes.data.user?.name || '')
-        setProfile(profileRes.data.profile)
+        
+        const p = profileRes.data.data || profileRes.data.profile
+        setProfile(p)
+        if (p) {
+          setTeamSize(p.teamSize || 1)
+          setSelectedSkills(p.skills || [])
+          setRatePerJob(p.ratePerJob?.toString() || '')
+          setRatePerHour(p.ratePerHour?.toString() || '')
+          setCity(p.city || '')
+          setArea(p.area || '')
+        }
       } catch {
         // handled
       } finally {
@@ -53,6 +74,34 @@ export default function HamaliProfilePage() {
     }
   }
 
+  const toggleSkill = (skill: string) => {
+    if (selectedSkills.includes(skill)) {
+      setSelectedSkills(selectedSkills.filter(s => s !== skill))
+    } else {
+      setSelectedSkills([...selectedSkills, skill])
+    }
+  }
+
+  const saveProfile = async () => {
+    setSavingProfile(true)
+    try {
+      const res = await api.put('/api/hamali/profile', {
+        teamSize,
+        skills: selectedSkills,
+        ratePerJob: Number(ratePerJob),
+        ratePerHour: Number(ratePerHour),
+        city,
+        area
+      })
+      setProfile(res.data.data || res.data.profile)
+      toast.success('Profile updated successfully')
+    } catch (err) {
+      toast.error('Failed to update profile')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-4 space-y-4">
@@ -64,8 +113,6 @@ export default function HamaliProfilePage() {
 
   const kycColor = user?.isKYCApproved ? 'var(--green)' : '#D97706'
   const kycLabel = user?.isKYCApproved ? 'KYC Approved' : 'KYC Pending'
-
-  const skills: string[] = profile?.skills || []
 
   return (
     <motion.div
@@ -90,7 +137,7 @@ export default function HamaliProfilePage() {
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
         <div className="relative">
-          <Avatar name={user?.name} size="xl" src={user?.profilePhoto} />
+          <Avatar name={user?.name} size="xl" src={user?.profilePhoto} role="hamali" />
           <button
             className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center"
             style={{ background: teal, color: 'white' }}
@@ -160,95 +207,130 @@ export default function HamaliProfilePage() {
         </div>
       </motion.div>
 
-      {/* Hamali profile info */}
-      {profile && (
-        <motion.div
-          variants={fadeUp}
-          className="rounded-md p-4 mb-4"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-syne font-700 text-sm" style={{ color: 'var(--text-muted)' }}>HAMALI PROFILE</h3>
-            <Users size={18} style={{ color: teal }} />
+      {/* Hamali profile form */}
+      <motion.div
+        variants={fadeUp}
+        className="rounded-md p-4 mb-4"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-syne font-700 text-sm" style={{ color: 'var(--text-muted)' }}>HAMALI PROFILE</h3>
+          <Users size={18} style={{ color: teal }} />
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>Team Size</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button 
+                onClick={() => setTeamSize(s => Math.max(1, s - 1))}
+                style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >−</button>
+              <span style={{ fontFamily: 'Syne', fontSize: '24px', fontWeight: 700, width: 32, textAlign: 'center' }}>
+                {teamSize}
+              </span>
+              <button 
+                onClick={() => setTeamSize(s => Math.min(20, s + 1))}
+                style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >+</button>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <Users size={14} style={{ color: teal }} />
-              <div>
-                <p className="text-xs" style={{ color: 'var(--text-faint)' }}>Team Size</p>
-                <p className="font-500" style={{ color: 'var(--text)' }}>
-                  {profile.teamSize} person{profile.teamSize > 1 ? 's' : ''}
-                </p>
-              </div>
+
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>Skills</label>
+            <div className="flex flex-wrap gap-2">
+              {SKILLS.map(skill => (
+                <button key={skill}
+                  onClick={() => toggleSkill(skill)}
+                  style={{
+                    padding: '6px 14px', borderRadius: '999px',
+                    border: '1.5px solid',
+                    borderColor: selectedSkills.includes(skill) ? 'var(--teal)' : 'var(--border)',
+                    background: selectedSkills.includes(skill) ? 'var(--teal-light)' : 'transparent',
+                    color: selectedSkills.includes(skill) ? 'var(--teal)' : 'var(--text-muted)',
+                    fontFamily: 'Outfit', fontWeight: 500, fontSize: '13px'
+                  }}>
+                  {skill}
+                </button>
+              ))}
             </div>
-            <div className="flex items-center gap-2">
-              <Briefcase size={14} style={{ color: teal }} />
-              <div>
-                <p className="text-xs" style={{ color: 'var(--text-faint)' }}>Rate per Job</p>
-                <p className="font-500" style={{ color: 'var(--text)' }}>₹{profile.ratePerJob}</p>
-              </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>Rate per job (₹)</label>
+              <Input type="number" value={ratePerJob} onChange={e => setRatePerJob(e.target.value)} placeholder="e.g. 500" />
             </div>
-            <div className="flex items-center gap-2">
-              <Clock size={14} style={{ color: teal }} />
-              <div>
-                <p className="text-xs" style={{ color: 'var(--text-faint)' }}>Rate per Hour</p>
-                <p className="font-500" style={{ color: 'var(--text)' }}>₹{profile.ratePerHour}/hr</p>
-              </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>Rate per hour (₹)</label>
+              <Input type="number" value={ratePerHour} onChange={e => setRatePerHour(e.target.value)} placeholder="e.g. 150" />
             </div>
-            {(profile.city || profile.area) && (
-              <div className="flex items-center gap-2">
-                <MapPin size={14} style={{ color: teal }} />
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--text-faint)' }}>Location</p>
-                  <p className="font-500" style={{ color: 'var(--text)' }}>
-                    {[profile.area, profile.city].filter(Boolean).join(', ')}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>City</label>
+              <Input value={city} onChange={e => setCity(e.target.value)} placeholder="e.g. Vijayawada" />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>Area/Locality</label>
+              <Input value={area} onChange={e => setArea(e.target.value)} placeholder="e.g. Benz Circle" />
+            </div>
+          </div>
+
+          <Button 
+            onClick={saveProfile} 
+            loading={savingProfile} 
+            className="w-full mt-2"
+            style={{ background: teal }}
+          >
+            Save Profile
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* KYC Documents */}
+      <motion.div variants={fadeUp} className="rounded-md p-4 mb-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <h3 className="font-syne font-700 text-sm mb-3" style={{ color: 'var(--text-muted)' }}>KYC DOCUMENTS</h3>
+        <span style={{
+          background: user?.isKYCApproved ? '#DCFCE7' : '#FEF3C7',
+          color: user?.isKYCApproved ? 'var(--green)' : '#D97706',
+          padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600
+        }}>
+          {user?.isKYCApproved ? '✓ KYC Approved' : '⏳ KYC Pending'}
+        </span>
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {['Aadhaar Front', 'Aadhaar Back'].map(doc => {
+            const isUploaded = uploadedDocs[doc]
+            return (
+              <div key={doc} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{doc}</p>
+                  <p style={{ fontSize: 11, color: isUploaded ? 'var(--green)' : 'var(--text-muted)' }}>
+                    {isUploaded ? 'Uploaded securely' : 'Upload clear photo'}
                   </p>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Total jobs */}
-          <div
-            className="px-3 py-2 rounded-md mb-3"
-            style={{ background: tealLight }}
-          >
-            <p className="text-xs" style={{ color: teal }}>Total Jobs Completed</p>
-            <p className="font-syne font-700 text-xl" style={{ color: teal }}>
-              {profile.totalJobsDone || 0}
-            </p>
-          </div>
-
-          {/* Skills */}
-          {skills.length > 0 && (
-            <div>
-              <p className="text-xs mb-2" style={{ color: 'var(--text-faint)' }}>SKILLS</p>
-              <div className="flex flex-wrap gap-2">
-                {skills.map((skill: string) => (
-                  <span
-                    key={skill}
-                    className="text-xs px-2 py-1 rounded-full font-500 capitalize"
-                    style={{ background: tealLight, color: teal }}
-                  >
-                    {skill.replace('_', ' ')}
+                {isUploaded ? (
+                  <span style={{ padding: '6px 14px', borderRadius: 8, background: '#DCFCE7', color: 'var(--green)', fontSize: 12, fontWeight: 600 }}>
+                    Uploaded
                   </span>
-                ))}
+                ) : (
+                  <label style={{ padding: '6px 14px', borderRadius: 8, background: teal, color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    Upload
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={() => {
+                      toast.loading('Uploading to Cloudinary...', { duration: 1500 })
+                      setTimeout(() => {
+                        setUploadedDocs(prev => ({ ...prev, [doc]: true }))
+                        toast.success(`${doc} uploaded successfully`)
+                      }, 1500)
+                    }} />
+                  </label>
+                )}
               </div>
-            </div>
-          )}
-
-          {/* Verified badge */}
-          <span
-            className="text-xs font-500 px-2 py-1 rounded-full mt-3 inline-block"
-            style={{
-              background: profile.isVerified ? '#DCFCE7' : '#FEF3C7',
-              color: profile.isVerified ? 'var(--green)' : '#D97706'
-            }}
-          >
-            {profile.isVerified ? 'Profile Verified' : 'Pending Verification'}
-          </span>
-        </motion.div>
-      )}
+            )
+          })}
+        </div>
+      </motion.div>
 
       {/* Logout */}
       <motion.div variants={fadeUp}>

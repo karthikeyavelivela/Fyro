@@ -18,6 +18,11 @@ import {
   Users,
 } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
+import dynamic from 'next/dynamic'
+
+const CustomerAvatar3D = dynamic(() => import('@/components/3d/CustomerAvatar3D'), { ssr: false })
+const DriverAvatar3D = dynamic(() => import('@/components/3d/DriverAvatar3D'), { ssr: false })
+const HamaliAvatar3D = dynamic(() => import('@/components/3d/HamaliAvatar3D'), { ssr: false })
 
 type Role = 'customer' | 'driver' | 'hamali' | 'admin'
 
@@ -31,7 +36,7 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
   customer: [
     { label: 'Overview', path: '/dashboard', icon: Home },
     { label: 'Book Service', path: '/book', icon: Truck },
-    { label: 'Trips', path: '/bookings', icon: BookOpen },
+    { label: 'My Trips', path: '/bookings', icon: BookOpen },
     { label: 'Payments', path: '/payments', icon: CreditCard },
     { label: 'Complaints', path: '/complaints', icon: FileWarning },
     { label: 'Profile', path: '/profile', icon: User },
@@ -65,7 +70,11 @@ const ROLE_META: Record<Role, { tag: string; accent: string; subtitle: string }>
 }
 
 function isActive(pathname: string, href: string) {
-  return pathname === href || (href !== '/dashboard' && href !== '/driver' && href !== '/hamali' && href !== '/admin' && pathname.startsWith(href))
+  if (pathname === href) return true
+  // Exact root paths don't use prefix matching
+  if (href === '/dashboard' || href === '/driver' || href === '/hamali' || href === '/admin') return false
+  // For prefix matching, require the next char to be '/' or end of string
+  return pathname.startsWith(href) && (pathname.length === href.length || pathname[href.length] === '/')
 }
 
 export default function AppShell({
@@ -113,21 +122,31 @@ export default function AppShell({
       </aside>
 
       <div className="app-content">
-        <header className="app-topbar">
-          <div>
-            <p>{meta.tag} Workspace</p>
-            <strong>{items.find((item) => isActive(pathname, item.path))?.label || 'Overview'}</strong>
+        <header className="app-topbar" style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(242,239,233,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{meta.tag} Workspace</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: 'var(--text)', lineHeight: 1.1 }}>{items.find((item) => isActive(pathname, item.path))?.label || 'Overview'}</span>
           </div>
-          <div className="app-topbar-badge">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+          <div style={{ width: '80px', height: '80px', position: 'relative', top: '8px', flexShrink: 0, pointerEvents: 'none' }}>
+            {role === 'customer' && <CustomerAvatar3D />}
+            {role === 'driver' && <DriverAvatar3D />}
+            {role === 'hamali' && <HamaliAvatar3D />}
+          </div>
         </header>
+
+        <div style={{ padding: '12px 32px 0' }}>
+          <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', fontFamily: 'var(--font-body)', background: 'var(--surface)', padding: '4px 12px', borderRadius: '999px', border: '1px solid var(--border)' }}>
+            {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </span>
+        </div>
 
         <main className="app-main" style={{ paddingBottom: '80px' }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0.7, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
+              exit={{ opacity: 0.7, y: -6 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
               {children}
