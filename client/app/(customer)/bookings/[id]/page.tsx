@@ -37,26 +37,43 @@ export default function BookingDetailPage() {
   const [complaintDesc, setComplaintDesc] = useState('')
   const [submittingComplaint, setSubmittingComplaint] = useState(false)
 
+  const getBooking = useCallback(async () => {
+    const response = await api.get(`/api/bookings/${id}`)
+    return response.data?.booking || response.data?.data?.booking || response.data
+  }, [id])
+
+  const fetchBooking = useCallback(async () => {
+    const nextBooking = await getBooking()
+    setBooking(nextBooking)
+    return nextBooking
+  }, [getBooking])
+
+  const getCurrentUser = useCallback(async () => {
+    const response = await api.get('/api/auth/me')
+    return response.data?.user || response.data?.data?.user || response.data
+  }, [])
+
   useEffect(() => {
-    let cancelled = false
+    let active = true
+
     const load = async () => {
       try {
-        const [bRes, meRes] = await Promise.all([api.get(`/api/bookings/${id}`), api.get('/api/auth/me')])
-        if (cancelled) return
-        setBooking(bRes.data?.booking || bRes.data?.data?.booking || bRes.data)
-        setUser(meRes.data?.user || meRes.data?.data?.user || meRes.data)
+        const [nextBooking, me] = await Promise.all([getBooking(), getCurrentUser()])
+        if (!active) return
+        setBooking(nextBooking)
+        setUser(me)
       } catch {
-        if (!cancelled) toast.error('Failed to load booking')
+        if (active) toast.error('Failed to load booking')
       } finally {
-        if (!cancelled) setLoading(false)
+        if (active) setLoading(false)
       }
     }
+
     load()
-    
+
     socket.emit('join:booking', { bookingId: id })
-    api.get('/api/auth/me').then((res) => {
-      if (cancelled) return
-      const me = res.data?.user || res.data?.data?.user
+    getCurrentUser().then((me) => {
+      if (!active) return
       if (me?._id || me?.id) socket.emit('join:user', { userId: me._id || me.id })
     }).catch(() => {})
 
@@ -71,13 +88,13 @@ export default function BookingDetailPage() {
 
     socket.on('driver:location', handleDriverLocation)
     socket.on('booking:status_update', handleStatusUpdate)
-    
+
     return () => {
-      cancelled = true
+      active = false
       socket.off('driver:location', handleDriverLocation)
       socket.off('booking:status_update', handleStatusUpdate)
     }
-  }, [id])
+  }, [getBooking, getCurrentUser, id])
 
   const handlePay = async () => {
     setPaying(true)
