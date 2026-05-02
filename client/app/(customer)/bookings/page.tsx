@@ -31,24 +31,37 @@ export default function BookingsPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
 
-  const fetchBookings = async (pg = 1, flt = filter) => {
-    setLoading(true)
-    try {
-      const params: any = { limit: 10, page: pg }
-      const statuses = STATUS_MAP[flt]
-      if (statuses.length === 1) params.status = statuses[0]
-      const { data } = await api.get('/api/bookings/my', { params })
-      const list = toArray<any>(
-        data?.bookings ?? data?.data?.bookings ?? data?.data ?? data
-      )
-      if (pg === 1) setBookings(list)
-      else setBookings(prev => [...prev, ...list])
-      setHasMore(list.length === 10)
-    } catch { toast.error('Failed to load bookings') }
-    finally { setLoading(false) }
-  }
-
-  useEffect(() => { setPage(1); fetchBookings(1, filter) }, [filter])
+  useEffect(() => {
+    let cancelled = false
+    setPage(1)
+    
+    const load = async () => {
+      setLoading(true)
+      try {
+        const params: any = { limit: 10, page: 1 }
+        const statuses = STATUS_MAP[filter]
+        if (statuses.length === 1) params.status = statuses[0]
+        const { data } = await api.get('/api/bookings/my', { params })
+        if (cancelled) return
+        
+        const list = toArray<any>(
+          data?.bookings ?? data?.data?.bookings ?? data?.data ?? data
+        )
+        setBookings(list)
+        setHasMore(list.length === 10)
+      } catch {
+        if (!cancelled) toast.error('Failed to load bookings')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    
+    load()
+    
+    return () => {
+      cancelled = true
+    }
+  }, [filter])
 
   const displayed = search
     ? toArray<any>(bookings).filter(b =>
@@ -103,7 +116,26 @@ export default function BookingsPage() {
             </motion.div>
           ))}
           {hasMore && (
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => { const next = page + 1; setPage(next); fetchBookings(next) }}
+            <motion.button whileTap={{ scale: 0.97 }} onClick={async () => { 
+              const next = page + 1
+              setLoading(true)
+              try {
+                const params: any = { limit: 10, page: next }
+                const statuses = STATUS_MAP[filter]
+                if (statuses.length === 1) params.status = statuses[0]
+                const { data } = await api.get('/api/bookings/my', { params })
+                const list = toArray<any>(
+                  data?.bookings ?? data?.data?.bookings ?? data?.data ?? data
+                )
+                setBookings(prev => [...prev, ...list])
+                setPage(next)
+                setHasMore(list.length === 10)
+              } catch {
+                toast.error('Failed to load more')
+              } finally {
+                setLoading(false)
+              }
+            }}
               disabled={loading}
               style={{
                 width: '100%', background: 'var(--surface)', border: '1.5px solid var(--border-strong)',

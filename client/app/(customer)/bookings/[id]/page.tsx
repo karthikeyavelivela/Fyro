@@ -37,38 +37,47 @@ export default function BookingDetailPage() {
   const [complaintDesc, setComplaintDesc] = useState('')
   const [submittingComplaint, setSubmittingComplaint] = useState(false)
 
-  const fetchBooking = useCallback(async () => {
-    try {
-      const [bRes, meRes] = await Promise.all([api.get(`/api/bookings/${id}`), api.get('/api/auth/me')])
-      setBooking(bRes.data?.booking || bRes.data?.data?.booking || bRes.data)
-      setUser(meRes.data?.user || meRes.data?.data?.user || meRes.data)
-    } catch {
-      toast.error('Failed to load booking')
-    } finally {
-      setLoading(false)
-    }
-  }, [id])
-
   useEffect(() => {
-    fetchBooking()
+    let cancelled = false
+    const load = async () => {
+      try {
+        const [bRes, meRes] = await Promise.all([api.get(`/api/bookings/${id}`), api.get('/api/auth/me')])
+        if (cancelled) return
+        setBooking(bRes.data?.booking || bRes.data?.data?.booking || bRes.data)
+        setUser(meRes.data?.user || meRes.data?.data?.user || meRes.data)
+      } catch {
+        if (!cancelled) toast.error('Failed to load booking')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    
     socket.emit('join:booking', { bookingId: id })
     api.get('/api/auth/me').then((res) => {
+      if (cancelled) return
       const me = res.data?.user || res.data?.data?.user
       if (me?._id || me?.id) socket.emit('join:user', { userId: me._id || me.id })
     }).catch(() => {})
 
-    socket.on('driver:location', (loc: any) => {
+    const handleDriverLocation = (loc: any) => {
       const next = loc?.providerCoords || loc
       if (typeof next?.lat === 'number' && typeof next?.lng === 'number') {
         setDriverLocation({ lat: next.lat, lng: next.lng })
       }
-    })
-    socket.on('booking:status_update', () => fetchBooking())
-    return () => {
-      socket.off('driver:location')
-      socket.off('booking:status_update')
     }
-  }, [id, fetchBooking])
+    
+    const handleStatusUpdate = () => load()
+
+    socket.on('driver:location', handleDriverLocation)
+    socket.on('booking:status_update', handleStatusUpdate)
+    
+    return () => {
+      cancelled = true
+      socket.off('driver:location', handleDriverLocation)
+      socket.off('booking:status_update', handleStatusUpdate)
+    }
+  }, [id])
 
   const handlePay = async () => {
     setPaying(true)

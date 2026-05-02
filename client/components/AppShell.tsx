@@ -19,10 +19,9 @@ import {
 } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
 import dynamic from 'next/dynamic'
-
-const CustomerAvatar3D = dynamic(() => import('@/components/3d/CustomerAvatar3D'), { ssr: false })
-const DriverAvatar3D = dynamic(() => import('@/components/3d/DriverAvatar3D'), { ssr: false })
-const HamaliAvatar3D = dynamic(() => import('@/components/3d/HamaliAvatar3D'), { ssr: false })
+import Avatar from '@/components/ui/Avatar'
+import { useEffect, useState } from 'react'
+import api from '@/lib/api'
 
 type Role = 'customer' | 'driver' | 'hamali' | 'admin'
 
@@ -85,6 +84,10 @@ export default function AppShell({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const [user, setUser] = useState<any>(null)
+  useEffect(() => {
+    api.get('/api/auth/me').then(res => setUser(res.data?.user || res.data?.data?.user)).catch(() => {})
+  }, [])
   const items = NAV_ITEMS[role]
   const meta = ROLE_META[role]
 
@@ -127,10 +130,14 @@ export default function AppShell({
             <span style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{meta.tag} Workspace</span>
             <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: 'var(--text)', lineHeight: 1.1 }}>{items.find((item) => isActive(pathname, item.path))?.label || 'Overview'}</span>
           </div>
-          <div style={{ width: '80px', height: '80px', position: 'relative', top: '8px', flexShrink: 0, pointerEvents: 'none' }}>
-            {role === 'customer' && <CustomerAvatar3D />}
-            {role === 'driver' && <DriverAvatar3D />}
-            {role === 'hamali' && <HamaliAvatar3D />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', color: 'var(--text-muted)' }}>
+              <Bell size={22} />
+              <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '10px', height: '10px', background: 'var(--accent)', borderRadius: '50%', border: '2px solid var(--bg)' }}></span>
+            </button>
+            <Link href={role === 'admin' ? '/admin' : `/${role === 'customer' ? 'profile' : `${role}/profile`}`} style={{ textDecoration: 'none' }}>
+              <Avatar name={user?.name} role={role} size="sm" />
+            </Link>
           </div>
         </header>
 

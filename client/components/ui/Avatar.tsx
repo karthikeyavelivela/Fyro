@@ -23,7 +23,8 @@ function initials(name: string): string {
 
 function getRoleColor(role?: string): string {
   if (role === 'hamali') return '#0D9488'  // teal
-  return '#FF6B2B'  // orange for customer, driver, admin, and fallback
+  if (role === 'admin') return '#6B6860'   // gray
+  return '#FF6B2B'  // orange for customer, driver, and fallback
 }
 
 export default function Avatar({ src, name, size = 'md', role }: Props) {

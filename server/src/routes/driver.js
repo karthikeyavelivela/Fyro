@@ -7,6 +7,8 @@ const haversine = require('../utils/haversine')
 const findBooking = require('../utils/findBooking')
 const logger = require('../utils/logger.js')
 
+const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
+
 const router = express.Router()
 
 // GET /api/driver/incoming
@@ -194,22 +196,33 @@ router.put('/location', protect, roleGuard('driver'), async (req, res) => {
 })
 
 // PUT /api/driver/availability
-router.put('/availability', protect, roleGuard('driver'), async (req, res) => {
-  try {
-    const { isAvailable } = req.body
-    if (isAvailable == null) return res.status(400).json({ success: false, message: 'isAvailable required' })
-
-    await Vehicle.findOneAndUpdate(
-      { driverId: req.user.userId },
-      { isAvailable: Boolean(isAvailable) }
-    )
-
-    return res.json({ success: true })
-  } catch (err) {
-    logger.error('PUT driver/availability: ' + err.message)
-    return res.status(500).json({ success: false, message: 'Server error' })
+router.put('/availability', protect, roleGuard('driver'), asyncHandler(async (req, res, next) => {
+  const { isAvailable } = req.body
+  if (typeof isAvailable !== 'boolean') {
+    return res.status(400).json({
+      success: false, data: null,
+      message: 'isAvailable must be boolean'
+    })
   }
-})
+  const userId = req.user.userId || req.user.id || req.user._id
+
+  let vehicle = await Vehicle.findOneAndUpdate(
+    { driverId: userId },
+    { isAvailable },
+    { new: true, runValidators: false }
+  )
+  if (!vehicle) {
+    vehicle = await Vehicle.create({
+      driverId: userId,
+      isAvailable,
+      currentLocation: {
+        type: 'Point',
+        coordinates: [80.648, 16.506]
+      }
+    })
+  }
+  return res.json({ success: true, data: vehicle })
+}))
 
 // GET /api/driver/earnings
 router.get('/earnings', protect, roleGuard('driver'), async (req, res) => {

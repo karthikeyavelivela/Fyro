@@ -6,8 +6,6 @@ import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { Bell, Truck, Package, List, RefreshCcw, FileText, Gift, ArrowRight } from 'lucide-react'
 
-const FloatingTruck3D = dynamic(() => import('@/components/3d/FloatingTruck3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
-const FloatingBoxes3D = dynamic(() => import('@/components/3d/FloatingBoxes3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -23,9 +21,6 @@ function greeting() {
   return 'Good evening'
 }
 
-function initials(name: string) {
-  return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
-}
 
 function toArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? value : []
@@ -39,6 +34,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       try {
         const [meRes, activeRes, recentRes] = await Promise.all([
@@ -46,6 +42,8 @@ export default function DashboardPage() {
           api.get('/api/bookings/my?status=in_progress&status=accepted&limit=1').catch(() => ({ data: { bookings: [] } })),
           api.get('/api/bookings/my?limit=4').catch(() => ({ data: { bookings: [] } })),
         ])
+
+        if (cancelled) return
 
         const me = meRes.data?.user || meRes.data?.data?.user || meRes.data
         const activeList = toArray<any>(
@@ -59,28 +57,32 @@ export default function DashboardPage() {
         setActiveBooking(activeList[0] || null)
         setRecentBookings(recentList)
       } catch {
-        toast.error('Failed to load dashboard')
+        if (!cancelled) toast.error('Failed to load dashboard')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     load()
-    socket.on('booking:accepted', () => {
+    
+    const handleAccepted = () => {
       toast.success('Your booking was accepted')
       load()
-    })
+    }
+    
+    socket.on('booking:accepted', handleAccepted)
 
     return () => {
-      socket.off('booking:accepted')
+      cancelled = true
+      socket.off('booking:accepted', handleAccepted)
     }
   }, [])
 
   const quickActions = [
-    { icon: List, label: 'Schedule' },
-    { icon: RefreshCcw, label: 'Repeat' },
-    { icon: FileText, label: 'Invoices' },
-    { icon: Gift, label: 'Refer' },
+    { icon: List, label: 'Schedule', path: '/schedule' },
+    { icon: RefreshCcw, label: 'Repeat', path: '/book' },
+    { icon: FileText, label: 'Invoices', path: '/payments' },
+    { icon: Gift, label: 'Refer', path: '/profile#refer' },
   ]
 
   return (
@@ -88,31 +90,95 @@ export default function DashboardPage() {
       variants={staggerContainer}
       initial="hidden"
       animate="show"
-      style={{ padding: '16px 20px 120px', maxWidth: 460, margin: '0 auto' }}
+      style={{ padding: '0', maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}
     >
-      {/* Header */}
-      <motion.div variants={fadeUp} style={{ position: 'relative', minHeight: 110 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 120 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>Customer Workspace</div>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{greeting()},</div>
-            <div className="syne" style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em' }}>
-              {user?.name?.split(' ')[0] || 'there'}
-            </div>
+      {/* Greeting */}
+      <motion.div variants={fadeUp} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 16, color: 'var(--text-muted)' }}>{greeting()},</div>
+          <div className="syne" style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', marginTop: 4 }}>
+            {user?.name?.split(' ')[0] || 'there'}
           </div>
         </div>
-
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
-          <button style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', cursor: 'pointer' }}>
-            <Bell size={18} />
-            <span style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: 'var(--orange)', border: '2px solid #fff' }} />
-          </button>
-          <div style={{
-            width: 40, height: 40, borderRadius: '50%', background: 'var(--orange)', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 700, fontSize: 15, fontFamily: 'var(--font-display)',
-          }}>{user?.name ? initials(user.name) : 'U'}</div>
+        <div style={{ padding: '4px 14px', borderRadius: '999px', background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 500 }}>
+          {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
         </div>
+      </motion.div>
+
+      {/* Book now */}
+      <motion.div variants={fadeUp}>
+        <div className="syne" style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Book now</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+          <Link href="/book?type=transport" style={{ textDecoration: 'none' }}>
+            <motion.div 
+              whileHover={{ y: -3, boxShadow: 'var(--shadow-md)' }}
+              whileTap={{ scale: 0.98 }}
+              style={{
+                height: '100%', minHeight: 110, borderRadius: 20, background: '#FF6B2B', color: '#fff',
+                display: 'flex', alignItems: 'center', padding: '0 24px', overflow: 'hidden'
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div className="syne" style={{ fontSize: 22, fontWeight: 700 }}>Book a Truck</div>
+                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>Transport goods instantly</div>
+              </div>
+              <div style={{ width: 120, position: 'relative' }}>
+                <svg viewBox="0 0 120 80" fill="none">
+                  <rect x="0" y="15" width="75" height="45" rx="4" fill="rgba(255,255,255,0.2)" />
+                  <rect x="75" y="25" width="35" height="35" rx="4" fill="rgba(255,255,255,0.3)" />
+                  <rect x="100" y="28" width="8" height="20" rx="2" fill="rgba(255,255,255,0.5)" />
+                  <circle cx="20" cy="63" r="10" fill="rgba(0,0,0,0.3)" />
+                  <circle cx="20" cy="63" r="5" fill="rgba(255,255,255,0.4)" />
+                  <circle cx="88" cy="63" r="10" fill="rgba(0,0,0,0.3)" />
+                  <circle cx="88" cy="63" r="5" fill="rgba(255,255,255,0.4)" />
+                  <text x="22" y="42" fill="rgba(255,255,255,0.6)" fontSize="11" fontWeight="700">FYRO</text>
+                </svg>
+              </div>
+            </motion.div>
+          </Link>
+          <Link href="/book?type=hamali" style={{ textDecoration: 'none' }}>
+            <motion.div 
+              whileHover={{ y: -3, boxShadow: 'var(--shadow-md)' }}
+              whileTap={{ scale: 0.98 }}
+              style={{
+                height: '100%', minHeight: 110, borderRadius: 20, background: '#0D9488', color: '#fff',
+                display: 'flex', alignItems: 'center', padding: '0 24px', overflow: 'hidden'
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div className="syne" style={{ fontSize: 22, fontWeight: 700 }}>Book Hamali</div>
+                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>Loading & unloading workers</div>
+              </div>
+              <div style={{ width: 120, position: 'relative' }}>
+                <svg viewBox="0 0 120 80" fill="none">
+                  <rect x="20" y="40" width="30" height="30" rx="2" fill="rgba(255,255,255,0.3)" />
+                  <rect x="55" y="40" width="30" height="30" rx="2" fill="rgba(255,255,255,0.2)" />
+                  <rect x="37.5" y="10" width="30" height="30" rx="2" fill="rgba(255,255,255,0.4)" />
+                  <path d="M20 40 l15 -15 l30 0 l-15 15 z" fill="rgba(255,255,255,0.15)" />
+                  <path d="M55 40 l15 -15 l30 0 l-15 15 z" fill="rgba(255,255,255,0.1)" />
+                  <path d="M37.5 10 l15 -15 l30 0 l-15 15 z" fill="rgba(255,255,255,0.25)" />
+                </svg>
+              </div>
+            </motion.div>
+          </Link>
+        </div>
+      </motion.div>
+
+      {/* Quick actions */}
+      <motion.div variants={fadeUp} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        {quickActions.map(qa => (
+          <Link key={qa.label} href={qa.path} style={{ textDecoration: 'none' }}>
+            <div style={{
+              background: '#fff', borderRadius: 16, padding: '16px 8px',
+              border: '1px solid var(--border)', display: 'flex',
+              flexDirection: 'column', alignItems: 'center', gap: 10, cursor: 'pointer',
+              boxShadow: 'var(--shadow-sm)', transition: 'transform 0.2s'
+            }}>
+              <qa.icon size={20} color="var(--orange)" />
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{qa.label}</span>
+            </div>
+          </Link>
+        ))}
       </motion.div>
 
       {/* Active booking */}
@@ -122,9 +188,8 @@ export default function DashboardPage() {
           style={{
             background: '#fff',
             borderRadius: 16,
-            border: '1px solid var(--border-light)',
-            padding: 16,
-            marginTop: 16,
+            border: '1px solid var(--border)',
+            padding: 20,
             position: 'relative',
             overflow: 'hidden',
             boxShadow: 'var(--shadow-md)',
@@ -136,71 +201,24 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginLeft: 8 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <Badge status={activeBooking.status} />
-              <div style={{ fontWeight: 600, fontSize: 14, marginTop: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontWeight: 600, fontSize: 15, marginTop: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activeBooking.pickup?.address || activeBooking.workLocation?.address || 'Active booking'}
               </div>
-              <div className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              <div className="mono" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                 #{(activeBooking.bookingId || activeBooking._id).slice(-8).toUpperCase()}
               </div>
             </div>
-            <button style={{ color: 'var(--orange)', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
-              Track <ArrowRight size={14} />
+            <button style={{ color: 'var(--orange)', fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+              Track <ArrowRight size={16} />
             </button>
           </div>
         </motion.div>
       )}
 
-      {/* Book now */}
-      <motion.div variants={fadeUp} className="syne" style={{ fontSize: 18, fontWeight: 700, marginTop: 24 }}>Book now</motion.div>
-      <motion.div variants={fadeUp} style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-        <Link href="/book?type=transport" style={{ textDecoration: 'none' }}>
-          <button style={{
-            width: '100%', height: 120, borderRadius: 20, background: 'var(--orange)', color: '#fff',
-            position: 'relative', overflow: 'hidden', textAlign: 'left', padding: '20px 22px',
-            border: 'none', cursor: 'pointer'
-          }}>
-            <div className="syne" style={{ fontSize: 22, fontWeight: 700 }}>Book a Truck</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Transport goods instantly</div>
-            <div style={{ position: 'absolute', right: -10, top: -15, width: 160, height: 150, pointerEvents: 'none' }}>
-              <FloatingTruck3D />
-            </div>
-            <ArrowRight size={20} color="#fff" style={{ position: 'absolute', right: 18, bottom: 18, zIndex: 2 }} />
-          </button>
-        </Link>
-        <Link href="/book?type=hamali" style={{ textDecoration: 'none' }}>
-          <button style={{
-            width: '100%', height: 120, borderRadius: 20, background: 'var(--teal)', color: '#fff',
-            position: 'relative', overflow: 'hidden', textAlign: 'left', padding: '20px 22px',
-            border: 'none', cursor: 'pointer'
-          }}>
-            <div className="syne" style={{ fontSize: 22, fontWeight: 700 }}>Book Hamali</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Loading & unloading workers</div>
-            <div style={{ position: 'absolute', right: -10, top: -15, width: 160, height: 150, pointerEvents: 'none' }}>
-              <FloatingBoxes3D />
-            </div>
-            <ArrowRight size={20} color="#fff" style={{ position: 'absolute', right: 18, bottom: 18, zIndex: 2 }} />
-          </button>
-        </Link>
-      </motion.div>
-
-      {/* Quick actions */}
-      <motion.div variants={fadeUp} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 20 }}>
-        {quickActions.map(qa => (
-          <button key={qa.label} style={{
-            background: '#fff', borderRadius: 14, padding: '14px 8px',
-            border: '1px solid var(--border-light)', display: 'flex',
-            flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer'
-          }}>
-            <qa.icon size={18} color="var(--orange)" />
-            <span style={{ fontSize: 11, fontWeight: 500 }}>{qa.label}</span>
-          </button>
-        ))}
-      </motion.div>
-
       {/* Recent trips */}
-      <motion.div variants={fadeUp} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 24 }}>
+      <motion.div variants={fadeUp} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div className="syne" style={{ fontSize: 18, fontWeight: 700 }}>Recent trips</div>
-        <Link href="/bookings" style={{ fontSize: 13, color: 'var(--orange)', fontWeight: 600, textDecoration: 'none' }}>
+        <Link href="/bookings" style={{ fontSize: 14, color: 'var(--orange)', fontWeight: 600, textDecoration: 'none' }}>
           See all
         </Link>
       </motion.div>
@@ -225,39 +243,44 @@ export default function DashboardPage() {
                 style={{
                   background: '#fff',
                   borderRadius: 16,
-                  border: '1px solid var(--border-light)',
-                  padding: 14,
+                  border: '1px solid var(--border)',
+                  padding: 16,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 12,
+                  gap: 16,
                   cursor: 'pointer',
                   boxShadow: 'var(--shadow-sm)',
+                  transition: 'transform 0.2s',
                 }}
               >
                 <div style={{
-                  width: 40, height: 40, borderRadius: 10,
+                  width: 48, height: 48, borderRadius: 12,
                   background: isHamali ? 'var(--teal-light)' : 'var(--orange-light)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
                   {isHamali
-                    ? <Package size={18} color="var(--teal)" />
-                    : <Truck size={18} color="var(--orange)" />}
+                    ? <Package size={24} color="var(--teal)" />
+                    : <Truck size={24} color="var(--orange)" />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div className="syne" style={{ fontWeight: 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {route}
                   </div>
-                  <div className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    #{(b.bookingId || b._id).slice(-8).toUpperCase()}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                    <div className="mono" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                      #{(b.bookingId || b._id).slice(-8).toUpperCase()}
+                    </div>
+                    <span style={{ color: 'var(--text-faint)' }}>•</span>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                      {new Date(b.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                    </div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div className="syne mono" style={{ fontSize: 15, fontWeight: 700, color: 'var(--orange)' }}>
-                    ₹{b.totalFare || 0}
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <div className="syne mono" style={{ fontSize: 18, fontWeight: 700, color: 'var(--orange)' }}>
+                    ₹{b.totalFare || b.estimatedFare || 0}
                   </div>
-                  <div style={{ marginTop: 2 }}>
-                    <Badge status={b.status} />
-                  </div>
+                  <Badge status={b.status} />
                 </div>
               </div>
             )

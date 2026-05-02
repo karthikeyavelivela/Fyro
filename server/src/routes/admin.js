@@ -186,24 +186,18 @@ router.get('/complaints', async (req, res) => {
   }
 })
 
-// PUT /api/admin/complaints/:id
-router.put('/complaints/:id', async (req, res) => {
+// PUT /api/admin/complaints/:id/resolve
+router.put('/complaints/:id/resolve', async (req, res) => {
   try {
-    const { status, adminNote } = req.body
+    const { adminNote } = req.body
 
     const complaint = await Complaint.findOne({ complaintId: req.params.id })
+      || await Complaint.findById(req.params.id)
     if (!complaint) return res.status(404).json({ success: false, message: 'Complaint not found' })
 
-    const validStatuses = ['open', 'under_review', 'resolved', 'rejected']
-    if (status && !validStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid status' })
-    }
-
-    if (status) complaint.status = status
+    complaint.status = 'resolved'
     if (adminNote) complaint.adminNote = adminNote
-    if (status === 'resolved' || status === 'rejected') {
-      complaint.resolvedAt = new Date()
-    }
+    complaint.resolvedAt = new Date()
 
     await complaint.save()
 
@@ -212,46 +206,66 @@ router.put('/complaints/:id', async (req, res) => {
 
     return res.json({ success: true, complaint })
   } catch (err) {
-    logger.error('PUT admin/complaints/:id: ' + err.message)
+    logger.error('PUT admin/complaints/:id/resolve: ' + err.message)
     return res.status(500).json({ success: false, message: 'Server error' })
   }
 })
 
-// PUT /api/admin/kyc/:userId
-router.put('/kyc/:userId', async (req, res) => {
+// PUT /api/admin/kyc/:userId/approve
+router.put('/kyc/:userId/approve', async (req, res) => {
   try {
-    const { approved, reason } = req.body
-
     const user = await User.findById(req.params.userId)
     if (!user) return res.status(404).json({ success: false, message: 'User not found' })
 
-    user.isKYCApproved = Boolean(approved)
+    user.isKYCApproved = true
     await user.save()
 
-    if (approved) {
-      if (user.role === 'driver') {
-        await Vehicle.findOneAndUpdate(
-          { driverId: user._id },
-          { isVerified: true }
-        )
-      } else if (user.role === 'hamali') {
-        await HamaliProfile.findOneAndUpdate(
-          { workerId: user._id },
-          { isVerified: true }
-        )
-      }
+    if (user.role === 'driver') {
+      await Vehicle.findOneAndUpdate(
+        { driverId: user._id },
+        { isVerified: true }
+      )
+    } else if (user.role === 'hamali') {
+      await HamaliProfile.findOneAndUpdate(
+        { workerId: user._id },
+        { isVerified: true }
+      )
     }
 
     const io = req.app.get('io')
     io.to(`user:${user._id}`).emit('kyc:updated', {
-      approved,
+      approved: true,
+      reason: '',
+      userId: user._id
+    })
+
+    return res.json({ success: true, user: { id: user._id, name: user.name, isKYCApproved: true } })
+  } catch (err) {
+    logger.error('PUT admin/kyc/:userId/approve: ' + err.message)
+    return res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+// PUT /api/admin/kyc/:userId/reject
+router.put('/kyc/:userId/reject', async (req, res) => {
+  try {
+    const { reason } = req.body
+    const user = await User.findById(req.params.userId)
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' })
+
+    user.isKYCApproved = false
+    await user.save()
+
+    const io = req.app.get('io')
+    io.to(`user:${user._id}`).emit('kyc:updated', {
+      approved: false,
       reason: reason || '',
       userId: user._id
     })
 
-    return res.json({ success: true, user: { id: user._id, name: user.name, isKYCApproved: user.isKYCApproved } })
+    return res.json({ success: true, user: { id: user._id, name: user.name, isKYCApproved: false } })
   } catch (err) {
-    logger.error('PUT admin/kyc/:userId: ' + err.message)
+    logger.error('PUT admin/kyc/:userId/reject: ' + err.message)
     return res.status(500).json({ success: false, message: 'Server error' })
   }
 })
@@ -272,4 +286,43 @@ router.put('/users/:id/deactivate', async (req, res) => {
   }
 })
 
+// PUT /api/admin/users/:id/activate
+router.put('/users/:id/activate', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' })
+
+    user.isActive = true
+    await user.save()
+
+    return res.json({ success: true, message: 'User activated' })
+  } catch (err) {
+    logger.error('PUT admin/users/:id/activate: ' + err.message)
+    return res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+// PUT /api/admin/bookings/:id/cancel
+router.put('/bookings/:id/cancel', async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id) || await Booking.findOne({ bookingId: req.params.id })
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
+
+    booking.status = 'cancelled'
+    await booking.save()
+
+    const io = req.app.get('io')
+    if (booking.providerId) {
+      io.to(`user:${booking.providerId}`).emit('booking:cancelled', { bookingId: booking.bookingId })
+    }
+    io.to(`booking:${booking.bookingId}`).emit('booking:status_update', { status: 'cancelled', booking })
+
+    return res.json({ success: true, message: 'Booking cancelled' })
+  } catch (err) {
+    logger.error('PUT admin/bookings/:id/cancel: ' + err.message)
+    return res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
 module.exports = router
+

@@ -48,16 +48,17 @@ export default function DriverIncomingPage() {
     }
 
     init()
-    socket.on('booking:new', (payload: any) => {
+    const handleNewBooking = (payload: any) => {
       const booking = payload?.booking || payload
       if (!booking?._id) return
       mergeBookings([booking])
       toast('New booking request available')
-    })
+    }
+    socket.on('booking:new', handleNewBooking)
 
     return () => {
       mounted = false
-      socket.off('booking:new')
+      socket.off('booking:new', handleNewBooking)
     }
   }, [])
 

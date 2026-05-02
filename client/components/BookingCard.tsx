@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { springPop } from '@/lib/animations'
 import Badge from './ui/Badge'
-import { Flag, MapPin } from 'lucide-react'
+import { Truck, Package } from 'lucide-react'
 
 interface Booking {
   _id: string
@@ -14,26 +14,31 @@ interface Booking {
   workLocation?: { address?: string }
   status: string
   totalFare?: number
+  estimatedFare?: number
   createdAt?: string
   scheduledTime?: string
 }
 
-function truncate(str: string, max: number) {
-  if (!str) return ''
-  return str.length > max ? `${str.slice(0, max)}...` : str
-}
-
-function formatDate(iso: string) {
-  const date = new Date(iso)
-  return `${date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })} | ${date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+function getStatusColor(status: string) {
+  switch (status) {
+    case 'pending': return '#D97706' // amber
+    case 'accepted': case 'in_progress': return '#2563EB' // blue
+    case 'completed': case 'paid': return '#16A34A' // green
+    case 'cancelled': return '#DC2626' // red
+    default: return '#6B6860'
+  }
 }
 
 export default function BookingCard({ booking }: { booking: Booking }) {
   const router = useRouter()
   const isHamali = booking.bookingType === 'hamali'
-  const pickupAddr = booking.pickup?.address || booking.workLocation?.address || 'N/A'
-  const dropoffAddr = booking.dropoff?.address || ''
-  const dateStr = booking.createdAt ? formatDate(booking.createdAt) : ''
+  const route = isHamali
+    ? (booking.workLocation?.address || 'Hamali service')
+    : `${booking.pickup?.address?.split(',')[0] || 'Pickup'} → ${booking.dropoff?.address?.split(',')[0] || 'Dropoff'}`
+
+  const dateStr = booking.createdAt 
+    ? new Date(booking.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+    : ''
 
   return (
     <motion.div
@@ -46,45 +51,37 @@ export default function BookingCard({ booking }: { booking: Booking }) {
       style={{
         background: 'var(--surface)',
         borderRadius: 16,
-        padding: '18px 20px',
+        padding: '16px',
         border: '1px solid var(--border)',
         boxShadow: 'var(--shadow-sm)',
         cursor: 'pointer',
-        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: isHamali ? 'var(--teal)' : 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            {isHamali ? 'Hamali' : 'Transport'}
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>
-            #{(booking.bookingId || booking._id).slice(-8).toUpperCase()}
-          </span>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: isHamali ? 'var(--teal-light)' : 'var(--orange-light)', flexShrink: 0 }}>
+        <div style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: '50%', background: getStatusColor(booking.status), border: '2px solid var(--surface)' }} />
+        {isHamali ? <Package size={20} color="var(--teal)" /> : <Truck size={20} color="var(--orange)" />}
+      </div>
+      
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="mono" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)' }}>
+          {(booking.bookingId || booking._id).toUpperCase()}
+        </div>
+        <div className="syne" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', margin: '2px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {route}
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)' }}>
+          {dateStr}
+        </div>
+      </div>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+        <div className="syne" style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
+          ₹{booking.totalFare || booking.estimatedFare || 0}
         </div>
         <Badge status={booking.status} />
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <MapPin size={14} color="var(--accent)" style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{truncate(pickupAddr, 42)}</span>
-        </div>
-        {dropoffAddr && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Flag size={14} color="var(--teal)" style={{ flexShrink: 0 }} />
-            <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{truncate(dropoffAddr, 42)}</span>
-          </div>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{dateStr}</span>
-        {booking.totalFare !== undefined && (
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--accent)' }}>
-            ₹{booking.totalFare.toFixed(0)}
-          </span>
-        )}
       </div>
     </motion.div>
   )

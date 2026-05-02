@@ -79,15 +79,16 @@ export default function HamaliHomePage() {
     }
 
     load()
-    socket.on('booking:new', (booking: any) => {
+    const handleNewBooking = (booking: any) => {
       const next = booking?.booking || booking
       if (!next?._id) return
       setIncoming((prev) => prev.some((item) => item._id === next._id) ? prev : [next, ...prev].slice(0, 3))
       toast('New job request')
-    })
+    }
+    socket.on('booking:new', handleNewBooking)
     return () => {
       mounted = false
-      socket.off('booking:new')
+      socket.off('booking:new', handleNewBooking)
     }
   }, [])
 

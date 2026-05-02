@@ -11,38 +11,49 @@ const findBooking = require('../utils/findBooking')
 const { calculateFare } = require('../utils/fareEngine')
 const { generateBookingId } = require('../utils/generateId')
 const logger = require('../utils/logger.js')
+const bcrypt = require('bcrypt')
+
+const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
 const router = express.Router()
 
 // GET /api/vehicles/available
-router.get('/vehicles/available', async (req, res) => {
-  try {
-    const { lat, lng, type, radius = 15 } = req.query
-    if (!lat || !lng) return res.status(400).json({ success: false, message: 'lat and lng are required' })
+router.get('/vehicles/available', asyncHandler(async (req, res, next) => {
+  const lat = parseFloat(req.query.lat) || 16.5062
+  const lng = parseFloat(req.query.lng) || 80.648
+  const type = req.query.type
+  const radius = parseFloat(req.query.radius) || 15
 
-    const customerCoords = [parseFloat(lng), parseFloat(lat)]
-    const radiusKm = parseFloat(radius)
+  const query = { isAvailable: true, isVerified: true }
+  if (type && type !== 'all') query.type = type
 
-    const query = { isAvailable: true, isVerified: true }
-    if (type) query.type = type
+  const vehicles = await Vehicle.find(query)
+    .populate('driverId', 'name phone profilePhoto rating isActive')
 
-    const vehicles = await Vehicle.find(query).populate('driverId', 'name rating profilePhoto isKYCApproved isActive')
-
-    const results = vehicles
-      .filter(v => v.currentLocation && v.currentLocation.coordinates && v.currentLocation.coordinates.length === 2)
-      .map(v => {
-        const dist = haversine(customerCoords, v.currentLocation.coordinates)
-        return { ...v.toObject(), distance: Math.round(dist * 10) / 10 }
-      })
-      .filter(v => v.distance <= radiusKm && v.driverId?.isActive !== false)
-      .sort((a, b) => a.distance - b.distance)
-
-    return res.json({ success: true, vehicles: results })
-  } catch (err) {
-    logger.error('vehicles/available: ' + err.message)
-    return res.status(500).json({ success: false, message: 'Server error' })
+  const haversineDist = (a,b,c,d) => {
+    const R=6371,dl=(c-a)*Math.PI/180,dn=(d-b)*Math.PI/180
+    const x=Math.sin(dl/2)**2+Math.cos(a*Math.PI/180)*
+      Math.cos(c*Math.PI/180)*Math.sin(dn/2)**2
+    return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))
   }
-})
+
+  const nearby = vehicles
+    .filter(v => {
+      if (!v.driverId?.isActive) return false
+      const [vLng, vLat] = v.currentLocation?.coordinates || [lng, lat]
+      return haversineDist(lat, lng, vLat, vLng) <= radius
+    })
+    .map(v => {
+      const [vLng, vLat] = v.currentLocation?.coordinates || [lng, lat]
+      return {
+        ...v.toObject(),
+        distanceKm: haversineDist(lat, lng, vLat, vLng).toFixed(1)
+      }
+    })
+    .sort((a, b) => Number(a.distanceKm) - Number(b.distanceKm))
+
+  return res.json({ success: true, data: nearby })
+}))
 
 // GET /api/hamali/available
 router.get('/hamali/available', async (req, res) => {
@@ -73,138 +84,108 @@ router.get('/hamali/available', async (req, res) => {
 })
 
 // POST /api/bookings
-router.post('/bookings', protect, roleGuard('customer'), async (req, res) => {
-  try {
-    const {
-      bookingType, pickup, dropoff, vehicleType,
-      hamaliDetails, distanceKm, returnLoad, scheduledAt
-    } = req.body
+router.post('/bookings', protect, roleGuard('customer'), asyncHandler(async (req, res, next) => {
+  const userId = req.user.userId || req.user.id || req.user._id
+  const {
+    bookingType, pickup, dropoff,
+    vehicleType, scheduledAt, hamaliDetails
+  } = req.body
 
-    if (!bookingType || !['transport', 'hamali'].includes(bookingType)) {
-      return res.status(400).json({ success: false, message: 'Invalid bookingType' })
-    }
-    if (!pickup || !pickup.address || pickup.lat == null || pickup.lng == null) {
-      return res.status(400).json({ success: false, message: 'pickup address, lat, lng required' })
-    }
-
-    let fareParams = {
-      bookingType,
-      vehicleType,
-      distanceKm: distanceKm || 0,
-      returnLoad: returnLoad || false
-    }
-
-    if (bookingType === 'hamali') {
-      if (!hamaliDetails) return res.status(400).json({ success: false, message: 'hamaliDetails required' })
-      fareParams.teamSize = hamaliDetails.teamSize || 1
-      fareParams.estimatedHours = hamaliDetails.estimatedHours || 1
-      fareParams.floorNumber = hamaliDetails.floorNumber || 0
-      fareParams.heavyGoods = hamaliDetails.heavyGoods || false
-    } else {
-      if (!vehicleType) return res.status(400).json({ success: false, message: 'vehicleType required for transport' })
-      if (!dropoff || !dropoff.address) return res.status(400).json({ success: false, message: 'dropoff required for transport' })
-    }
-
-    let fareResult
-    try {
-      fareResult = calculateFare(fareParams)
-    } catch (e) {
-      return res.status(400).json({ success: false, message: e.message })
-    }
-
-    const pickupCoords = [pickup.lng, pickup.lat]
-    let nearbyProviders = []
-
-    if (bookingType === 'transport') {
-      const vehicles = await Vehicle.find({ isAvailable: true, isVerified: true })
-        .populate('driverId', 'name profilePhoto rating isActive')
-
-      nearbyProviders = vehicles.filter(v => {
-        if (!v.currentLocation?.coordinates?.length || !v.driverId?._id || v.driverId?.isActive === false) return false
-        const [vLng, vLat] = v.currentLocation.coordinates
-        return haversine([pickup.lng, pickup.lat], [vLng, vLat]) <= 15
-      }).map(v => {
-        const [vLng, vLat] = v.currentLocation.coordinates
-        return {
-          providerId: v.driverId._id,
-          vehicle: v,
-          distanceKm: haversine([pickup.lng, pickup.lat], [vLng, vLat])
-        }
-      })
-    } else {
-      const profiles = await HamaliProfile.find({ isAvailable: true, isVerified: true })
-        .populate('workerId', 'name profilePhoto rating isActive')
-
-      nearbyProviders = profiles.filter(p => {
-        if (!p.currentLocation?.coordinates?.length || !p.workerId?._id || p.workerId?.isActive === false) return false
-        const [wLng, wLat] = p.currentLocation.coordinates
-        return haversine([pickup.lng, pickup.lat], [wLng, wLat]) <= 8
-      }).map(p => {
-        const [wLng, wLat] = p.currentLocation.coordinates
-        return {
-          providerId: p.workerId._id,
-          profile: p,
-          distanceKm: haversine([pickup.lng, pickup.lat], [wLng, wLat])
-        }
-      })
-    }
-
-    const bookingId = await generateBookingId()
-
-    const bookingData = {
-      bookingId,
-      customerId: req.user.userId,
-      bookingType,
-      status: 'pending',
-      pickup,
-      fareBreakdown: fareResult,
-      estimatedFare: fareResult.total,
-      distanceKm: distanceKm || 0
-    }
-
-    if (bookingType === 'transport') {
-      bookingData.dropoff = dropoff
-      bookingData.vehicleType = vehicleType
-    } else {
-      bookingData.hamaliDetails = {
-        type: hamaliDetails.type || 'both',
-        teamSize: hamaliDetails.teamSize || 1,
-        estimatedHours: hamaliDetails.estimatedHours || 1,
-        floorNumber: hamaliDetails.floorNumber || 0,
-        heavyGoods: hamaliDetails.heavyGoods || false,
-        goodsDescription: hamaliDetails.goodsDescription || ''
-      }
-    }
-
-    if (scheduledAt) bookingData.scheduledAt = new Date(scheduledAt)
-
-    const booking = await Booking.create(bookingData)
-    const populatedBooking = await Booking.findById(booking._id)
-      .populate('customerId', 'name phone profilePhoto rating')
-      .populate('providerId', 'name phone profilePhoto rating')
-      .populate('vehicleId')
-
-    // Notify nearby providers via socket
-    const io = req.app.get('io')
-    nearbyProviders.forEach(provider => {
-      const eventPayload = {
-        ...(populatedBooking?.toObject?.() || booking.toObject()),
-        distanceKm: Math.round(provider.distanceKm * 10) / 10,
-      }
-      io?.to(`user:${provider.providerId}`).emit('booking:new', eventPayload)
-      io?.to(String(provider.providerId)).emit('booking:new', eventPayload)
+  if (!pickup?.lat || !pickup?.lng || !pickup?.address) {
+    return res.status(400).json({
+      success: false, data: null,
+      message: 'Pickup location required'
     })
-
-    const message = nearbyProviders.length === 0
-      ? 'Booking created. No nearby providers are online yet, but your request is live.'
-      : 'Booking created successfully'
-
-    return res.status(201).json({ success: true, booking: populatedBooking || booking, message, nearbyProviders: nearbyProviders.length })
-  } catch (err) {
-    logger.error('POST /bookings: ' + err.message)
-    return res.status(500).json({ success: false, message: 'Server error' })
   }
-})
+
+  // Generate bookingId
+  const count = await Booking.countDocuments()
+  const year = new Date().getFullYear()
+  const bookingId = `FY-${year}-${String(count + 1).padStart(4, '0')}`
+
+  // Generate 4-digit OTP
+  const otp = Math.floor(1000 + Math.random() * 9000).toString()
+  const otpHash = await bcrypt.hash(otp, 10)
+
+  // Calculate fare
+  const haversineDist = (a,b,c,d) => {
+    const R=6371,dl=(c-a)*Math.PI/180,dn=(d-b)*Math.PI/180
+    const x=Math.sin(dl/2)**2+Math.cos(a*Math.PI/180)*
+      Math.cos(c*Math.PI/180)*Math.sin(dn/2)**2
+    return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))
+  }
+  
+  const distanceKm = haversineDist(
+    pickup.lat, pickup.lng,
+    dropoff?.lat || pickup.lat,
+    dropoff?.lng || pickup.lng
+  )
+  const fareBreakdown = calculateFare({
+    bookingType, vehicleType, distanceKm,
+    teamSize: hamaliDetails?.teamSize || 1,
+    estimatedHours: hamaliDetails?.estimatedHours || 1,
+    floorNumber: hamaliDetails?.floorNumber || 0,
+    heavyGoods: hamaliDetails?.heavyGoods || false
+  })
+
+  const booking = await Booking.create({
+    bookingId,
+    customerId: userId,
+    bookingType,
+    status: 'pending',
+    pickup, dropoff,
+    vehicleType,
+    hamaliDetails,
+    scheduledAt: scheduledAt || new Date(),
+    distanceKm,
+    estimatedFare: fareBreakdown.total,
+    finalFare: fareBreakdown.total,
+    fareBreakdown,
+    otp: otpHash,
+    paymentStatus: 'pending'
+  })
+
+  // Dispatch to nearby providers via socket
+  const io = req.app.get('io')
+  if (bookingType === 'transport') {
+    const vehicles = await Vehicle.find({
+      isAvailable: true, isVerified: true,
+      ...(vehicleType ? { type: vehicleType } : {})
+    }).populate('driverId', 'name isActive')
+
+    vehicles.forEach(v => {
+      if (!v.driverId || v.driverId.isActive === false) return
+      const coords = v.currentLocation?.coordinates || [80.648, 16.506]
+      const dist = haversineDist(pickup.lat, pickup.lng, coords[1], coords[0])
+      if (dist <= 15) {
+        io?.to(`user:${v.driverId._id}`)
+          .emit('booking:new', {
+            ...booking.toObject(),
+            distanceKm: dist.toFixed(1),
+            otp // send plain OTP to customer
+          })
+      }
+    })
+  } else {
+    const profiles = await HamaliProfile.find({ isAvailable: true })
+      .populate('workerId', 'name isActive')
+    profiles.forEach(p => {
+      if (!p.workerId?.isActive) return
+      const coords = p.currentLocation?.coordinates || [80.648, 16.506]
+      const dist = haversineDist(pickup.lat, pickup.lng, coords[1], coords[0])
+      if (dist <= 10) {
+        io?.to(`user:${p.workerId._id}`)
+          .emit('booking:new', booking.toObject())
+      }
+    })
+  }
+
+  return res.status(201).json({
+    success: true,
+    data: { ...booking.toObject(), otp }, // return plain OTP once
+    message: 'Booking created'
+  })
+}))
 
 // GET /api/bookings/my
 router.get('/bookings/my', protect, roleGuard('customer'), async (req, res) => {
