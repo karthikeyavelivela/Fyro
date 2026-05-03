@@ -1,48 +1,41 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useMotionValue, useTransform, animate, useInView } from 'framer-motion'
-import { ArrowRight, Truck } from 'lucide-react'
-
+import { Truck, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { ensureArray } from '@/lib/ensureArray'
 import { socket } from '@/lib/socket'
 import AvailabilityToggle from '@/components/AvailabilityToggle'
-import { fadeUp, stagger, springCard } from '@/lib/motion'
 
-function CountUp({ to, prefix = '' }: { to: number; prefix?: string }) {
+function CountUp({ to }: { to: number }) {
   const count = useMotionValue(0)
-  const rounded = useTransform(count, v => prefix + Math.round(v).toLocaleString('en-IN'))
+  const rounded = useTransform(count, v => Math.round(v).toLocaleString('en-IN'))
   const ref = useRef<HTMLSpanElement>(null)
   const inView = useInView(ref as any, { once: true })
-  useEffect(() => {
-    if (inView) animate(count, to, { duration: 1.4, ease: 'easeOut' })
-  }, [inView, to, count])
+  useEffect(() => { if (inView) animate(count, to, { duration: 1.4, ease: 'easeOut' }) }, [inView, to, count])
   return <motion.span ref={ref}>{rounded}</motion.span>
-}
-
-function SectionSkeleton() {
-  return <div className="skeleton" style={{ height: 148, borderRadius: 22 }} />
 }
 
 export default function DriverHomePage() {
   const [user, setUser] = useState<any>(null)
   const [vehicle, setVehicle] = useState<any>(null)
-  const [earnings, setEarnings] = useState<any>({ today: 0, todayCount: 0, thisWeek: 0, thisMonth: 0, allTime: 0, tripCount: 0 })
+  const [earnings, setEarnings] = useState<any>({ today: 0, thisWeek: 0, thisMonth: 0, allTime: 0, tripCount: 0 })
   const [incoming, setIncoming] = useState<any[]>([])
   const [recentTrips, setRecentTrips] = useState<any[]>([])
-  const [isAvailable, setIsAvailable] = useState(false)
+  const [isOnline, setIsOnline] = useState(false)
   const [availabilityLoading, setAvailabilityLoading] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const hasFetched = useRef(false)
 
   useEffect(() => {
+    if (hasFetched.current) return
+    hasFetched.current = true
+
     let mounted = true
     const load = async () => {
-      setLoading(true)
-      setError('')
       try {
         const [me, earningsRes, incomingRes, bookingsRes, vehicleRes] = await Promise.allSettled([
           api.get('/api/auth/me'),
@@ -51,239 +44,219 @@ export default function DriverHomePage() {
           api.get('/api/driver/bookings'),
           api.get('/api/driver/vehicles/mine'),
         ])
-
         if (!mounted) return
 
-        const meUser = me.status === 'fulfilled' ? (me.value.data?.user || me.value.data?.data?.user || null) : null
+        const meUser = me.status === 'fulfilled' ? (me.value.data?.user || me.value.data?.data?.user) : null
         setUser(meUser)
-        if (meUser?._id || meUser?.id) socket.emit('join:user', { userId: meUser._id || meUser.id })
+        if (meUser?._id) socket.emit('join:user', { userId: meUser._id })
 
-        const earningsData = earningsRes.status === 'fulfilled'
-          ? (earningsRes.value.data?.earnings || earningsRes.value.data?.data?.earnings || earningsRes.value.data?.data || {})
+        const ed = earningsRes.status === 'fulfilled'
+          ? (earningsRes.value.data?.earnings || earningsRes.value.data?.data?.earnings || {})
           : {}
         setEarnings({
-          today: Number(earningsData.today || 0),
-          todayCount: Number(earningsData.todayCount || earningsData.todayTrips || 0),
-          thisWeek: Number(earningsData.thisWeek || earningsData.week || 0),
-          thisMonth: Number(earningsData.thisMonth || earningsData.month || 0),
-          allTime: Number(earningsData.allTime || earningsData.total || 0),
-          tripCount: Number(earningsData.tripCount || earningsData.totalTrips || 0),
+          today: Number(ed.today || 0),
+          thisWeek: Number(ed.thisWeek || 0),
+          thisMonth: Number(ed.thisMonth || 0),
+          allTime: Number(ed.allTime || 0),
+          tripCount: Number(ed.tripCount || 0),
         })
 
-        const vehicleData = vehicleRes.status === 'fulfilled'
-          ? (vehicleRes.value.data?.vehicle || vehicleRes.value.data?.data?.vehicle || null)
+        const v = vehicleRes.status === 'fulfilled'
+          ? (vehicleRes.value.data?.vehicle || vehicleRes.value.data?.data?.vehicle)
           : null
-        setVehicle(vehicleData)
-        setIsAvailable(Boolean(vehicleData?.isAvailable))
+        setVehicle(v)
+        setIsOnline(Boolean(v?.isAvailable))
 
-        const incomingList = incomingRes.status === 'fulfilled'
-          ? ensureArray<any>(incomingRes.value.data?.bookings ?? incomingRes.value.data?.data?.bookings ?? incomingRes.value.data?.data ?? incomingRes.value.data)
-          : []
-        setIncoming(incomingList.slice(0, 3))
-
-        const bookingList = bookingsRes.status === 'fulfilled'
-          ? ensureArray<any>(bookingsRes.value.data?.bookings ?? bookingsRes.value.data?.data?.bookings ?? bookingsRes.value.data?.data ?? bookingsRes.value.data)
-          : []
-        setRecentTrips(bookingList.slice(0, 4))
-      } catch {
-        if (mounted) setError('Unable to load driver dashboard right now.')
+        setIncoming(
+          (incomingRes.status === 'fulfilled'
+            ? ensureArray<any>(incomingRes.value.data?.bookings ?? incomingRes.value.data?.data?.bookings)
+            : []
+          ).slice(0, 3)
+        )
+        setRecentTrips(
+          (bookingsRes.status === 'fulfilled'
+            ? ensureArray<any>(bookingsRes.value.data?.bookings ?? bookingsRes.value.data?.data?.bookings)
+            : []
+          ).slice(0, 4)
+        )
       } finally {
         if (mounted) setLoading(false)
       }
     }
-
     load()
-    const handleNewBooking = (booking: any) => {
-      const next = booking?.booking || booking
+
+    const handleNewBooking = (b: any) => {
+      const next = b?.booking || b
       if (!next?._id) return
-      setIncoming((prev) => prev.some((item) => item._id === next._id) ? prev : [next, ...prev].slice(0, 3))
-      toast('New booking request available')
+      setIncoming(prev => prev.some(x => x._id === next._id) ? prev : [next, ...prev].slice(0, 3))
+      toast('New booking request')
     }
     socket.on('booking:new', handleNewBooking)
-    return () => {
-      mounted = false
-      socket.off('booking:new', handleNewBooking)
-    }
+    return () => { mounted = false; socket.off('booking:new', handleNewBooking) }
   }, [])
 
   const toggleAvailability = async (value: boolean) => {
     setAvailabilityLoading(true)
     try {
       await api.put('/api/driver/availability', { isAvailable: value })
-      setIsAvailable(value)
-      setVehicle((prev: any) => prev ? { ...prev, isAvailable: value } : prev)
+      setIsOnline(value)
+      setVehicle((p: any) => p ? { ...p, isAvailable: value } : p)
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to update availability')
+      toast.error(err?.response?.data?.message || 'Failed')
     } finally {
       setAvailabilityLoading(false)
     }
   }
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="page-shell compact page-stack">
+    <div className="fyro-page">
 
-      {/* Dark earnings hero card */}
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
-        style={{
-          background: 'linear-gradient(135deg, #1A1916 0%, #242220 100%)',
-          borderRadius: 20, padding: '28px 28px 24px',
-          border: '1px solid rgba(255,107,43,0.15)',
-          position: 'relative', overflow: 'hidden'
-        }}
-      >
-        <motion.div
-          style={{
-            position: 'absolute', top: -50, right: -50, width: 180, height: 180,
-            borderRadius: '50%', pointerEvents: 'none',
-            background: 'radial-gradient(circle, rgba(255,107,43,0.2) 0%, transparent 70%)'
-          }}
-          animate={{ scale: [1, 1.25, 1], opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', fontFamily: 'Outfit', marginBottom: 6 }}>THIS MONTH</div>
-        <div style={{ fontSize: 44, fontWeight: 800, color: '#FF6B2B', fontFamily: 'Syne', lineHeight: 1.05, letterSpacing: '-0.02em' }}>
+      {/* Dark earnings hero */}
+      <div className="fyro-card-dark fade-up fade-up-1" style={{
+        padding: '24px 22px', marginBottom: 14,
+        position: 'relative', overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute', top: -50, right: -50, width: 180, height: 180,
+          borderRadius: '50%', pointerEvents: 'none',
+          background: 'radial-gradient(circle, rgba(255,107,43,0.22) 0%, transparent 70%)',
+          animation: 'pulseDot 4s ease-in-out infinite'
+        }} />
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.36)', fontFamily: 'var(--font-body)', margin: '0 0 6px' }}>This Month</p>
+        <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 42, color: 'var(--orange)', letterSpacing: '-0.025em', lineHeight: 1, margin: 0 }}>
           ₹<CountUp to={earnings.thisMonth} />
-        </div>
-        <div style={{ color: 'rgba(255,255,255,0.28)', fontFamily: 'Outfit', fontSize: 13, marginTop: 4 }}>
-          Lifetime: ₹{(earnings.allTime || 0).toLocaleString('en-IN')}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        </p>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(255,255,255,0.28)', margin: '5px 0 0' }}>
+          Lifetime ₹{(earnings.allTime || 0).toLocaleString('en-IN')}
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           {[
-            { label: 'Today', value: `₹${(earnings.today || 0).toLocaleString('en-IN')}`, orange: false },
-            { label: 'This Week', value: `₹${(earnings.thisWeek || 0).toLocaleString('en-IN')}`, orange: false },
-            { label: 'Trips', value: String(earnings.tripCount || 0), orange: true }
-          ].map((item, i) => (
-            <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.1 }}>
-              <div style={{ fontSize: 17, fontWeight: 700, color: item.orange ? '#FF6B2B' : 'rgba(255,255,255,0.88)', fontFamily: 'Syne' }}>{item.value}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.32)', fontFamily: 'Outfit', marginTop: 2, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.label}</div>
-            </motion.div>
+            { label: 'Today', value: `₹${(earnings.today || 0).toLocaleString('en-IN')}` },
+            { label: 'This Week', value: `₹${(earnings.thisWeek || 0).toLocaleString('en-IN')}` },
+            { label: 'Trips', value: String(earnings.tripCount || 0), accent: true },
+          ].map(({ label, value, accent }) => (
+            <div key={label}>
+              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: accent ? 'var(--orange)' : 'rgba(255,255,255,0.85)', margin: 0 }}>{value}</p>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: 9, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '2px 0 0' }}>{label}</p>
+            </div>
           ))}
         </div>
-        {error && <p style={{ margin: '14px 0 0', color: 'rgba(255,100,100,0.9)', fontSize: 13 }}>{error}</p>}
-      </motion.div>
+      </div>
 
       {/* Availability toggle */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        style={{
-          background: '#fff', borderRadius: 16, padding: '18px 20px',
-          border: '1px solid rgba(15,14,12,0.07)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16
-        }}
-      >
+      <div className="fade-up fade-up-2" style={{
+        background: isOnline ? 'rgba(22,163,74,0.06)' : 'var(--surface)',
+        border: `1px solid ${isOnline ? 'rgba(22,163,74,0.2)' : 'var(--border)'}`,
+        borderRadius: 16, padding: '16px 18px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 14, marginBottom: 12, transition: 'all 280ms cubic-bezier(0.16,1,0.3,1)'
+      }}>
         <div>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>
-            {isAvailable ? '🟢 Online' : '⚫ Offline'}
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: isOnline ? '#16A34A' : 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+            {isOnline && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16A34A', display: 'inline-block', animation: 'pulseDot 2s ease infinite' }} />}
+            {isOnline ? 'Online' : 'Offline'}
+          </p>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>
+            {isOnline ? 'Receiving incoming jobs' : 'Toggle to start receiving jobs'}
+          </p>
+        </div>
+        <AvailabilityToggle isAvailable={isOnline} onChange={toggleAvailability} loading={availabilityLoading} />
+      </div>
+
+      {/* Vehicle */}
+      {!vehicle ? (
+        <Link href="/driver/profile" style={{ textDecoration: 'none' }}>
+          <div className="fade-up fade-up-3" style={{
+            border: '2px dashed rgba(255,107,43,0.28)', borderRadius: 16,
+            padding: '18px', textAlign: 'center', cursor: 'pointer',
+            marginBottom: 14, transition: 'all 220ms cubic-bezier(0.16,1,0.3,1)'
+          }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,107,43,0.5)'; e.currentTarget.style.background = 'rgba(255,107,43,0.03)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,107,43,0.28)'; e.currentTarget.style.background = ''; }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: 'rgba(255,107,43,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+              <Truck size={19} color="var(--orange)" />
+            </div>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--text)', margin: '0 0 3px' }}>Add your vehicle</p>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Complete profile to go online</p>
           </div>
-          <div style={{ fontFamily: 'Outfit', fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-            {isAvailable ? 'Receiving incoming trips' : 'Go online to receive trips'}
+        </Link>
+      ) : (
+        <div className="fade-up fade-up-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 18px', marginBottom: 14, boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 11, background: 'rgba(255,107,43,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Truck size={19} color="var(--orange)" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--text)', margin: 0 }}>{vehicle.registrationNumber || 'Vehicle'}</p>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0', textTransform: 'capitalize' }}>{vehicle.type?.replace(/_/g, ' ') || ''}</p>
+            </div>
+            <span style={{
+              padding: '4px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700,
+              fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '0.06em',
+              background: vehicle.isAvailable ? 'rgba(22,163,74,0.1)' : 'rgba(15,14,12,0.06)',
+              color: vehicle.isAvailable ? '#16A34A' : 'var(--text-muted)'
+            }}>
+              {vehicle.isAvailable ? 'Active' : 'Offline'}
+            </span>
           </div>
         </div>
-        <AvailabilityToggle isAvailable={isAvailable} onChange={toggleAvailability} loading={availabilityLoading} />
-      </motion.div>
-
-      {loading ? (
-        <>
-          <SectionSkeleton />
-          <SectionSkeleton />
-        </>
-      ) : (
-        <>
-          {/* Vehicle status */}
-          <motion.section variants={springCard} className="surface-panel panel-pad">
-            <div className="section-head">
-              <h2>Vehicle Status</h2>
-              <Truck size={18} color="var(--accent)" />
-            </div>
-            {vehicle ? (
-              <div style={{ display: 'grid', gap: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: 18 }}>{vehicle.type?.replace(/_/g, ' ') || 'Registered vehicle'}</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{vehicle.registrationNumber || 'Registration not added yet'}</div>
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                  background: vehicle.isAvailable ? 'rgba(22,163,74,0.1)' : 'rgba(15,14,12,0.06)',
-                  color: vehicle.isAvailable ? '#16A34A' : 'var(--text-muted)',
-                  width: 'fit-content'
-                }}>
-                  {vehicle.isAvailable ? 'Available for trips' : 'Currently offline'}
-                </div>
-              </div>
-            ) : (
-              <Link href="/driver/profile" style={{ textDecoration: 'none', display: 'block' }}>
-                <motion.div
-                  whileHover={{ borderColor: 'rgba(255,107,43,0.5)' }}
-                  style={{
-                    border: '2px dashed rgba(255,107,43,0.35)', borderRadius: 14,
-                    padding: '20px', textAlign: 'center', cursor: 'pointer'
-                  }}
-                >
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>🚛</div>
-                  <div style={{ fontWeight: 700, fontSize: 16, fontFamily: 'Syne', color: 'var(--text)' }}>Add your vehicle</div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Go to profile to add your truck</div>
-                </motion.div>
-              </Link>
-            )}
-          </motion.section>
-
-          {/* Incoming jobs preview */}
-          <motion.section variants={fadeUp} custom={2} className="surface-panel panel-pad">
-            <div className="section-head">
-              <h2>Incoming Requests</h2>
-              <Link href="/driver/incoming" className="muted-link" style={{ color: 'var(--accent)' }}>See all</Link>
-            </div>
-            {incoming.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)' }}>{isAvailable ? 'No incoming requests right now.' : 'Go online to start receiving bookings.'}</div>
-            ) : (
-              <div className="page-stack" style={{ gap: 12 }}>
-                {incoming.map((booking) => (
-                  <div key={booking._id} style={{ padding: 16, borderRadius: 18, border: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 700 }}>{booking.pickup?.address || 'Pickup pending'}</div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>{booking.dropoff?.address || 'Dropoff pending'}</div>
-                      </div>
-                      <div className="fare-number" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--accent)' }}>₹{Number(booking.estimatedFare || 0).toLocaleString('en-IN')}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.section>
-
-          {/* Recent trips */}
-          <motion.section variants={fadeUp} custom={3} className="surface-panel panel-pad">
-            <div className="section-head">
-              <h2>Recent Trips</h2>
-              <Link href="/driver/earnings" className="muted-link" style={{ color: 'var(--accent)' }}>Earnings</Link>
-            </div>
-            {recentTrips.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)' }}>No trips yet.</div>
-            ) : (
-              <div className="page-stack" style={{ gap: 12 }}>
-                {recentTrips.map((trip) => (
-                  <Link key={trip._id} href={`/driver/bookings/${trip.bookingId || trip._id}`} style={{ textDecoration: 'none' }}>
-                    <div style={{ padding: 16, borderRadius: 18, border: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontWeight: 700 }}>{trip.customerId?.name || 'Customer'}</div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 4 }}>{trip.status?.replace('_', ' ') || 'pending'}</div>
-                        </div>
-                        <ArrowRight size={18} color="var(--accent)" />
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </motion.section>
-        </>
       )}
-    </motion.div>
+
+      {/* Incoming */}
+      <div className="fade-up fade-up-4" style={{ marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, margin: 0 }}>Incoming jobs</h2>
+          <Link href="/driver/incoming" style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, color: 'var(--orange)', textDecoration: 'none' }}>See all →</Link>
+        </div>
+        {loading ? (
+          <div className="skeleton" style={{ height: 80 }} />
+        ) : incoming.length === 0 ? (
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, fontFamily: 'var(--font-body)' }}>
+            {isOnline ? 'No incoming jobs right now' : 'Go online to receive jobs'}
+          </div>
+        ) : (
+          incoming.map(job => (
+            <div key={job._id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px', marginBottom: 8, boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {job.pickup?.address || 'Pickup'}
+                </p>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  → {job.dropoff?.address || 'Dropoff'}
+                </p>
+              </div>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, color: 'var(--orange)', flexShrink: 0 }}>₹{job.estimatedFare || 0}</span>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Recent trips */}
+      <div className="fade-up fade-up-5">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, margin: 0 }}>Recent trips</h2>
+          <Link href="/driver/earnings" style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, color: 'var(--orange)', textDecoration: 'none' }}>Earnings →</Link>
+        </div>
+        {recentTrips.length === 0 ? (
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, fontFamily: 'var(--font-body)' }}>
+            No trips yet
+          </div>
+        ) : (
+          recentTrips.map(trip => (
+            <Link key={trip._id} href={`/driver/bookings/${trip.bookingId || trip._id}`} style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px', marginBottom: 8, boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{trip.customerId?.name || 'Customer'}</p>
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0', textTransform: 'capitalize' }}>{trip.status?.replace('_', ' ') || ''}</p>
+                </div>
+                <ArrowRight size={16} color="var(--orange)" />
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+
+    </div>
   )
 }

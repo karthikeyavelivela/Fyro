@@ -1627,6 +1627,370 @@ input, select, textarea {
 .truck-drive {
   animation: truckDrive 3s ease-in-out infinite;
 }
+
+/* Mobile topbar — show FYRO brand + role pill when sidebar hidden */
+@media (max-width: 1023px) {
+  .topbar-mobile-brand { display: inline-flex !important; }
+  .topbar-role-pill { display: inline-flex !important; }
+  .topbar-title-block { display: none !important; }
+  .fyro-topbar { box-shadow: 0 1px 0 rgba(15,14,12,0.04); }
+}
+
+/* Spinner for morphing buttons */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Live dot pulse */
+.live-dot {
+  position: relative;
+  display: inline-block;
+}
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.4;
+  animation: pulse 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FYRO v2 — RAPIDO/UBER-CLASS SHELL SYSTEM
+   ═══════════════════════════════════════════════════════════ */
+
+.fyro-shell {
+  display: flex;
+  min-height: 100svh;
+  background: var(--bg);
+}
+
+.fyro-sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 232px;
+  height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.fyro-sidebar-logo {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.fyro-sidebar-logo .dot { color: var(--orange); }
+
+.fyro-nav {
+  flex: 1;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fyro-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 180ms var(--ease, cubic-bezier(0.16,1,0.3,1));
+  white-space: nowrap;
+  text-decoration: none;
+}
+.fyro-nav-link:hover {
+  background: rgba(15,14,12,0.04);
+  color: var(--text);
+}
+.fyro-nav-link.active-orange {
+  background: rgba(255,107,43,0.09);
+  color: var(--orange);
+  font-weight: 600;
+}
+.fyro-nav-link.active-teal {
+  background: rgba(13,148,136,0.09);
+  color: var(--teal);
+  font-weight: 600;
+}
+.fyro-nav-link.active-dark {
+  background: rgba(15,14,12,0.07);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.fyro-sidebar-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.fyro-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+.fyro-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 13px;
+  color: #fff; flex-shrink: 0;
+}
+.fyro-avatar.orange { background: var(--orange); }
+.fyro-avatar.teal   { background: var(--teal); }
+.fyro-avatar.dark   { background: var(--dark); }
+
+.fyro-user-name {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 13px;
+  color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fyro-user-email {
+  font-family: var(--font-body);
+  font-size: 11px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.fyro-role-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.fyro-role-badge.orange { background: rgba(255,107,43,0.1); color: var(--orange); }
+.fyro-role-badge.teal   { background: rgba(13,148,136,0.1); color: var(--teal); }
+.fyro-role-badge.dark   { background: rgba(15,14,12,0.07); color: var(--text); }
+
+.fyro-logout-btn {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(15,14,12,0.04);
+  font-family: var(--font-body);
+  font-size: 13px; font-weight: 600;
+  color: var(--text-muted);
+  transition: all 180ms var(--ease, cubic-bezier(0.16,1,0.3,1));
+  margin-top: 8px;
+  border: none;
+  cursor: pointer;
+}
+.fyro-logout-btn:hover {
+  background: rgba(220,38,38,0.07);
+  color: #DC2626;
+}
+
+.fyro-content {
+  flex: 1;
+  margin-left: 232px;
+  min-height: 100svh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.fyro-mobile-header {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 56px;
+  background: rgba(242,239,233,0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0; z-index: 30;
+  flex-shrink: 0;
+}
+
+.fyro-mobile-logo {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 18px;
+  letter-spacing: -0.03em; color: var(--text);
+}
+.fyro-mobile-logo span { color: var(--orange); }
+
+.fyro-mobile-right {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.fyro-bottom-nav { display: none; }
+
+.fyro-page {
+  flex: 1;
+  padding: 28px clamp(16px, 4vw, 44px) 80px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* card / inputs / buttons (additive aliases) */
+.fyro-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 280ms cubic-bezier(0.16,1,0.3,1), box-shadow 280ms cubic-bezier(0.16,1,0.3,1);
+}
+.fyro-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+.fyro-card-dark {
+  background: var(--dark);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 20px;
+}
+
+.fyro-input {
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 14px; color: var(--text);
+  outline: none;
+  transition: border-color 180ms cubic-bezier(0.16,1,0.3,1), box-shadow 180ms cubic-bezier(0.16,1,0.3,1);
+}
+.fyro-input:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(255,107,43,0.12);
+}
+.fyro-input.teal:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.12);
+}
+.fyro-input::-moz-placeholder { color: var(--text-muted); }
+.fyro-input::placeholder { color: var(--text-muted); }
+
+.fyro-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 13px 22px;
+  border-radius: 14px;
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 14px;
+  transition: all 220ms cubic-bezier(0.16,1,0.3,1);
+  position: relative; overflow: hidden; cursor: pointer;
+  border: none; width: 100%;
+}
+.fyro-btn-orange { background: var(--orange); color: #fff; }
+.fyro-btn-orange:hover {
+  background: #e85520;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(255,107,43,0.32);
+}
+.fyro-btn-orange:active { transform: translateY(0) scale(0.98); }
+.fyro-btn-orange:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.fyro-btn-teal { background: var(--teal); color: #fff; }
+.fyro-btn-teal:hover {
+  background: #0a7a6f;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(13,148,136,0.3);
+}
+
+@keyframes fadeUp2 {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseDot {
+  0%,100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+
+.fade-up { animation: fadeUp2 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+.fade-up-1 { animation-delay: 0ms; }
+.fade-up-2 { animation-delay: 70ms; }
+.fade-up-3 { animation-delay: 140ms; }
+.fade-up-4 { animation-delay: 210ms; }
+.fade-up-5 { animation-delay: 280ms; }
+
+@media (max-width: 768px) {
+  .fyro-sidebar { display: none !important; }
+  .fyro-content {
+    margin-left: 0 !important;
+    padding-bottom: 68px;
+  }
+  .fyro-mobile-header { display: flex; }
+  .fyro-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(15,14,12,0.07);
+    z-index: 50;
+    align-items: stretch;
+  }
+  .fyro-bottom-link {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 10px; font-weight: 600;
+    transition: color 180ms cubic-bezier(0.16,1,0.3,1);
+    padding: 6px 0 10px;
+    text-decoration: none;
+  }
+  .fyro-bottom-link.act-orange { color: var(--orange); }
+  .fyro-bottom-link.act-teal   { color: var(--teal); }
+  .fyro-bottom-link.act-dark   { color: var(--text); }
+  .fyro-bottom-link svg { transition: transform 180ms cubic-bezier(0.16,1,0.3,1); }
+  .fyro-bottom-link.act-orange svg,
+  .fyro-bottom-link.act-teal svg,
+  .fyro-bottom-link.act-dark svg {
+    transform: scale(1.15) translateY(-1px);
+  }
+  .fyro-page { padding: 16px 14px 80px; }
+}
+
+@media (min-width: 769px) {
+  .fyro-sidebar { display: flex !important; }
+  .fyro-mobile-header { display: none !important; }
+  .fyro-bottom-nav { display: none !important; }
+  .fyro-content { margin-left: 232px; }
+  .booking-grid {
+    grid-template-columns: 1.3fr 1fr !important;
+  }
+}
+
 @media (min-width: 768px){
 
   .md\:h-72{

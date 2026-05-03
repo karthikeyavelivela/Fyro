@@ -16,6 +16,41 @@
       "static/chunks/main-app.js",
       "static/chunks/app/login/page.js"
     ],
+    "/(admin)/admin/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin/page.js"
+    ],
+    "/(admin)/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/layout.js"
+    ],
+    "/(admin)/admin/bookings/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin/bookings/page.js"
+    ],
+    "/(admin)/admin/complaints/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin/complaints/page.js"
+    ],
+    "/(admin)/admin/users/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin/users/page.js"
+    ],
+    "/(admin)/admin/kyc/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin/kyc/page.js"
+    ],
+    "/register/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/register/page.js"
+    ],
     "/(customer)/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -36,20 +71,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(customer)/bookings/page.js"
     ],
-    "/(customer)/payments/page": [
+    "/(customer)/profile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(customer)/payments/page.js"
+      "static/chunks/app/(customer)/profile/page.js"
     ],
     "/(customer)/complaints/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(customer)/complaints/page.js"
     ],
-    "/(customer)/profile/page": [
+    "/(customer)/payments/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(customer)/profile/page.js"
+      "static/chunks/app/(customer)/payments/page.js"
     ],
     "/(hamali)/hamali/page": [
       "static/chunks/webpack.js",
@@ -90,16 +125,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(driver)/driver/incoming/page.js"
-    ],
-    "/(driver)/driver/earnings/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(driver)/driver/earnings/page.js"
-    ],
-    "/(driver)/driver/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(driver)/driver/profile/page.js"
     ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
