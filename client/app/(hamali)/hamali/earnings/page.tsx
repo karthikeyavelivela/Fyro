@@ -1,9 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
-
-const RupeeCoin3D = dynamic(() => import('@/components/3d/RupeeCoin3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 import { fadeUp, staggerContainer, springPop } from '@/lib/animations'
 import api from '@/lib/api'
 import { useRouter } from 'next/navigation'
@@ -69,8 +66,9 @@ export default function HamaliEarningsPage() {
           <ArrowLeft size={20} />
         </button>
         <h1 className="font-syne font-800 text-2xl" style={{ color: 'var(--text)' }}>Earnings</h1>
-        <div style={{ marginLeft: 'auto', width: 90, height: 90, pointerEvents: 'none' }}>
-          <RupeeCoin3D teal={true} />
+        <div style={{ marginLeft: 'auto', borderRadius: 14, padding: '10px 14px', background: 'linear-gradient(135deg, rgba(13,148,136,0.14), rgba(13,148,136,0.04))', border: '1px solid rgba(13,148,136,0.18)' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>All time</div>
+          <div className="font-syne font-800" style={{ fontSize: 20, color: teal }}>Rs.{Number(earnings?.allTime || 0).toLocaleString('en-IN')}</div>
         </div>
       </motion.div>
 

@@ -43,7 +43,7 @@ export default function LiveTrackingMapInner({ pickup, dropoff, driverLocation, 
 
       if (!containerRef.current || mapRef.current) return
 
-      const center: [number, number] = pickup ? [pickup.lat, pickup.lng] : [17.385, 78.4867]
+      const center: [number, number] = pickup ? [pickup.lat, pickup.lng] : [16.5062, 80.6480]
       mapRef.current = L.map(containerRef.current, { zoomControl: false }).setView(center, 13)
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {

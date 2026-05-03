@@ -1,12 +1,23 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useRef } from 'react'
+import { motion, useMotionValue, useTransform, animate, useInView } from 'framer-motion'
 import {
   ArrowRight, Check, MapPin, Zap, MessageCircle, Package,
   ShieldCheck, RefreshCw, User, FileText, Star
 } from 'lucide-react'
+
+function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
+  const count = useMotionValue(0)
+  const rounded = useTransform(count, v => Math.round(v).toLocaleString('en-IN') + suffix)
+  const ref = useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref as any, { once: true })
+  useEffect(() => {
+    if (inView) animate(count, to, { duration: 1.8, ease: 'easeOut' })
+  }, [inView, to, count])
+  return <span ref={ref}><motion.span>{rounded}</motion.span></span>
+}
 
 const LANGS = ['EN', 'हिंदी', 'తెలుగు', 'தமிழ்']
 
@@ -114,9 +125,33 @@ export default function LandingPage() {
               Now live in Andhra Pradesh &amp; Telangana
             </div>
             <h1 className="syne" style={{ fontSize: 'clamp(48px, 9vw, 88px)', lineHeight: 1, margin: 0, fontWeight: 800, letterSpacing: '-0.04em' }}>
-              Find Your<br />
-              <span style={{ color: 'var(--orange)' }}>Right</span> One<br />
-              for India.
+              {['Find', 'Your'].map((word, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ y: '110%', opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: i * 0.08, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ display: 'inline-block', marginRight: '0.25em' }}
+                >{word}</motion.span>
+              ))}<br />
+              {['Right', 'One'].map((word, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ y: '110%', opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.16 + i * 0.08, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ display: 'inline-block', marginRight: '0.25em', color: i === 0 ? 'var(--orange)' : 'inherit' }}
+                >{word}</motion.span>
+              ))}<br />
+              {['for', 'India.'].map((word, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ y: '110%', opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.32 + i * 0.08, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ display: 'inline-block', marginRight: '0.25em' }}
+                >{word}</motion.span>
+              ))}
             </h1>
             <p style={{ fontSize: 18, color: 'var(--text-muted)', maxWidth: 480, marginTop: 28, lineHeight: 1.6 }}>
               Book trucks and hamali workers instantly. Track live. Pay via UPI. Built for Indian roads.
@@ -191,11 +226,17 @@ export default function LandingPage() {
       </section>
 
       {/* Stats bar */}
-      <section style={{ background: '#fff', borderTop: '1px solid var(--divider)', borderBottom: '1px solid var(--divider)', padding: '48px clamp(20px, 5vw, 72px)' }}>
+      <section style={{ background: 'var(--bg)', borderTop: '1px solid var(--divider)', borderBottom: '1px solid var(--divider)', padding: '48px clamp(20px, 5vw, 72px)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 0, maxWidth: 1400, margin: '0 auto' }}>
-          {[['2,400+', 'Trucks registered'], ['4 min', 'Average match time'], ['24', 'Cities active']].map(([n, l], i) => (
+          {([
+            [2400, '+', 'Trucks registered'],
+            [4, ' min', 'Average match time'],
+            [24, '', 'Cities active']
+          ] as const).map(([n, suffix, l], i) => (
             <div key={l} style={{ textAlign: 'center', borderLeft: i > 0 ? '1px solid var(--divider)' : 'none', padding: '0 12px' }}>
-              <div className="syne" style={{ fontSize: 52, fontWeight: 800, color: 'var(--orange)', letterSpacing: '-0.03em' }}>{n}</div>
+              <div className="syne" style={{ fontSize: 52, fontWeight: 800, color: 'var(--orange)', letterSpacing: '-0.03em' }}>
+                <CountUp to={n} suffix={suffix} />
+              </div>
               <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 4 }}>{l}</div>
             </div>
           ))}
@@ -216,7 +257,11 @@ export default function LandingPage() {
           <div className="feature-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 20, marginTop: 60 }}>
             {/* Hero feature */}
             <div style={{ gridRow: 'span 2', background: 'var(--dark)', color: '#fff', borderRadius: 24, padding: 40, position: 'relative', overflow: 'hidden', minHeight: 400 }}>
-            <div className="float-gentle" style={{ position: 'absolute', top: -60, right: -60, width: 300, height: 300, background: 'radial-gradient(circle, rgba(255,107,43,0.25), transparent 70%)' }} />
+              <motion.div
+                style={{ position: 'absolute', top: -60, right: -60, width: 300, height: 300, borderRadius: '50%', pointerEvents: 'none', background: 'radial-gradient(circle, rgba(255,107,43,0.25) 0%, transparent 70%)' }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+              />
               <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 32, position: 'relative' }}>
                 <RefreshCw size={28} color="#fff" strokeWidth={2} />
               </div>
@@ -239,14 +284,23 @@ export default function LandingPage() {
               { Ic: MessageCircle, t: 'In-app messaging', d: 'Chat or call drivers in English, Hindi, or Telugu.', bg: 'var(--orange-light)', c: 'var(--orange)' },
               { Ic: Package, t: 'Hamali workers', d: 'Book trusted loading/unloading crews on demand.', bg: 'var(--teal-light)', c: 'var(--teal)' },
               { Ic: ShieldCheck, t: 'Verified operators', d: 'Every driver KYC-verified. PAN, license, vehicle docs.', bg: 'var(--orange-light)', c: 'var(--orange)' },
-            ].map(({ Ic, t, d, bg, c }) => (
-              <div key={t} className="surface-lift" style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border-light)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 24 }}>
+            ].map(({ Ic, t, d, bg, c }, idx) => (
+              <motion.div
+                key={t}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.08, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -6, boxShadow: '0 20px 60px rgba(15,14,12,0.14)' }}
+                className="surface-lift"
+                style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border-light)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 24 }}
+              >
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                   <Ic size={22} color={c} strokeWidth={1.75} />
                 </div>
                 <div className="syne" style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{t}</div>
                 <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.55, marginTop: 6 }}>{d}</div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

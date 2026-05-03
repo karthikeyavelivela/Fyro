@@ -1,0 +1,12 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/login/page": "app/login/page.js",
+  "/(customer)/book/page": "app/(customer)/book/page.js",
+  "/(customer)/profile/page": "app/(customer)/profile/page.js",
+  "/(driver)/driver/page": "app/(driver)/driver/page.js",
+  "/(driver)/driver/incoming/page": "app/(driver)/driver/incoming/page.js",
+  "/(driver)/driver/earnings/page": "app/(driver)/driver/earnings/page.js",
+  "/(driver)/driver/profile/page": "app/(driver)/driver/profile/page.js",
+  "/(hamali)/hamali/page": "app/(hamali)/hamali/page.js",
+  "/(hamali)/hamali/profile/page": "app/(hamali)/hamali/profile/page.js"
+}

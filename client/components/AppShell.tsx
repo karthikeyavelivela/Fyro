@@ -93,36 +93,60 @@ export default function AppShell({
 
   return (
     <div className="app-shell">
-      <aside className="app-sidebar">
+      <motion.aside
+        className="app-sidebar"
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
         <Link href="/" className="app-brand">
           <span className="app-brand-mark">F</span>
-          <span>
+          <span style={{ minWidth: 0, overflow: 'hidden' }}>
             <strong>FYRO</strong>
             <small>{meta.subtitle}</small>
           </span>
         </Link>
 
-        <div className="app-role-tag" style={{ ['--role-accent' as string]: meta.accent }}>
+        <motion.div
+          className="app-role-tag"
+          style={{ ['--role-accent' as string]: meta.accent }}
+          animate={{ scale: [1, 1.04, 1] }}
+          transition={{ duration: 2, repeat: 3, ease: 'easeInOut' }}
+        >
           <span>{meta.tag}</span>
-        </div>
+        </motion.div>
 
         <nav className="app-nav" aria-label={`${meta.tag} navigation`}>
-          {items.map(({ path, label, icon: Icon }) => {
+          {items.map(({ path, label, icon: Icon }, index) => {
             const active = isActive(pathname, path)
             return (
-              <Link
+              <motion.div
                 key={path}
-                href={path}
-                className={active ? 'app-nav-link active' : 'app-nav-link'}
-                style={{ ['--nav-accent' as string]: meta.accent }}
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + index * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               >
-                <Icon size={18} />
-                <span>{label}</span>
-              </Link>
+                <Link
+                  href={path}
+                  className={active ? 'app-nav-link active' : 'app-nav-link'}
+                  style={{ ['--nav-accent' as string]: meta.accent }}
+                >
+                  <motion.span whileHover={{ rotate: 5, scale: 1.1 }} transition={{ duration: 0.2 }}>
+                    <Icon size={18} />
+                  </motion.span>
+                  <motion.span
+                    whileHover={{ x: 3 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  >
+                    {label}
+                  </motion.span>
+                </Link>
+              </motion.div>
             )
           })}
         </nav>
-      </aside>
+      </motion.aside>
 
       <div className="app-content">
         <header className="app-topbar" style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(242,239,233,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px' }}>

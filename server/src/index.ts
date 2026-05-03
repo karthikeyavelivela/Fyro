@@ -10,7 +10,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import connectDB from './config/db';
 import logger from './utils/logger';
-import { errorHandler } from './middleware/errorHandler';
+const errorHandler = require('./middleware/errorHandler.js');
 import './models/User';
 import './models/Vehicle';
 import './models/HamaliProfile';
@@ -28,10 +28,13 @@ import './models/Review';
 // prefers TS extensions, so mount the working routers explicitly here.
 const authRouter = require('./routes/auth.js');
 const adminRouter = require('./routes/admin.js');
+const bookingsRouter = require('./routes/bookings.js');
 const driverRouter = require('./routes/driver.js');
 const hamaliRouter = require('./routes/hamali.js');
 const paymentRouter = require('./routes/payments.js');
 const complaintRouter = require('./routes/complaints.js');
+const profileRouter = require('./routes/profile.js');
+const vehiclesRouter = require('./routes/vehicles.js');
 const customerRouter = require('./routes/customer.js');
 
 const app = express();
@@ -63,10 +66,13 @@ app.set('io', io);
 // Mount routes in order specified
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/bookings', bookingsRouter);
 app.use('/api/driver', driverRouter);
 app.use('/api/hamali', hamaliRouter);
 app.use('/api/payments', paymentRouter);
 app.use('/api/complaints', complaintRouter);
+app.use('/api/profile', profileRouter);
+app.use('/api/vehicles', vehiclesRouter);
 app.use('/api', customerRouter);
 
 // Error Handler MUST be last

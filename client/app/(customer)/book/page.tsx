@@ -46,6 +46,7 @@ function BookPageInner() {
 
   const [step, setStep] = useState(typeParam ? 2 : 1)
   const [bookingType, setBookingType] = useState<'transport' | 'hamali' | null>(typeParam)
+  const [submitting, setSubmitting] = useState(false)
   const [pickup, setPickup] = useState<Coords | null>(null)
   const [dropoff, setDropoff] = useState<Coords | null>(null)
   const [pickupInput, setPickupInput] = useState('')
@@ -81,14 +82,14 @@ function BookPageInner() {
   }, [bookingType, distanceKm, hours, teamSize, floor, heavyGoods])
 
   const geocodeSearch = async (query: string) => {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`, {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=in&limit=5`, {
       headers: { 'Accept-Language': 'en' }
     })
     return res.json()
   }
 
   const reverseGeocode = async (lat: number, lng: number) => {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&countrycodes=in`, {
       headers: { 'Accept-Language': 'en' }
     })
     const data = await res.json()
@@ -167,13 +168,19 @@ function BookPageInner() {
     }, 400)
   }
 
+  const findProvidersAnimated = async () => {
+    setSubmitting(true)
+    await findProviders()
+    setSubmitting(false)
+  }
+
   const findProviders = async () => {
     setLoadingProviders(true)
     setProvidersError(null)
     setSelectedProvider(null)
     try {
       if (!pickup || (bookingType === 'transport' && !dropoff)) {
-        toast.error('Add pickup and dropoff first')
+        toast.error('Please enter pickup and dropoff addresses')
         return
       }
       const endpoint = bookingType === 'transport' ? '/api/vehicles/available' : '/api/hamali/available'
@@ -273,16 +280,25 @@ function BookPageInner() {
                 <h1 className="font-display" style={{ fontWeight: 700, fontSize: 22, margin: 0 }}>What do you need?</h1>
               </div>
               <div style={{ display: 'grid', gap: 12 }}>
-                <button onClick={() => { setBookingType('transport'); setStep(2) }} style={{ width: '100%', height: 140, borderRadius: 20, background: 'var(--orange)', color: '#fff', textAlign: 'left', padding: '22px 24px', border: 'none', cursor: 'pointer', position: 'relative' }}>
-                  <div className="font-display" style={{ fontSize: 24, fontWeight: 700 }}>Book a Truck</div>
-                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 4 }}>Move goods across the city</div>
-                  <Truck size={96} color="rgba(255,255,255,0.2)" style={{ position: 'absolute', right: 10, bottom: 10 }} />
-                </button>
-                <button onClick={() => { setBookingType('hamali'); setStep(2) }} style={{ width: '100%', height: 140, borderRadius: 20, background: 'var(--teal)', color: '#fff', textAlign: 'left', padding: '22px 24px', border: 'none', cursor: 'pointer', position: 'relative' }}>
-                  <div className="font-display" style={{ fontSize: 24, fontWeight: 700 }}>Book Hamali</div>
-                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 4 }}>Loading and unloading workers</div>
-                  <Package size={96} color="rgba(255,255,255,0.2)" style={{ position: 'absolute', right: 10, bottom: 10 }} />
-                </button>
+                {([
+                  { type: 'transport' as const, label: 'Book a Truck', sub: 'Move goods across the city', color: 'var(--orange)', glow: 'rgba(255,107,43,0.25)', Icon: Truck },
+                  { type: 'hamali' as const, label: 'Book Hamali', sub: 'Loading and unloading workers', color: 'var(--teal)', glow: 'rgba(13,148,136,0.25)', Icon: Package },
+                ]).map(({ type, label, sub, color, glow, Icon }, idx) => (
+                  <motion.button
+                    key={type}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    whileHover={{ y: -6, boxShadow: `0 16px 40px ${glow}` }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => { setBookingType(type); setStep(2) }}
+                    style={{ width: '100%', height: 140, borderRadius: 20, background: color, color: '#fff', textAlign: 'left', padding: '22px 24px', border: 'none', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
+                  >
+                    <div className="font-display" style={{ fontSize: 24, fontWeight: 700 }}>{label}</div>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 4 }}>{sub}</div>
+                    <Icon size={96} color="rgba(255,255,255,0.2)" style={{ position: 'absolute', right: 10, bottom: 10 }} />
+                  </motion.button>
+                ))}
               </div>
             </motion.div>
           )}
@@ -311,9 +327,17 @@ function BookPageInner() {
                       {VEHICLE_TYPES.map((vehicle) => {
                         const selected = vehicleType === vehicle.key
                         return (
-                          <button key={vehicle.key} onClick={() => setVehicleType(vehicle.key)} style={{ padding: 14, borderRadius: 14, border: selected ? '2px solid var(--orange)' : '1px solid var(--border-light)', background: selected ? 'var(--orange-tint)' : '#fff', textAlign: 'left', cursor: 'pointer' }}>
+                          <motion.button
+                            key={vehicle.key}
+                            onClick={() => setVehicleType(vehicle.key)}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            animate={{ scale: selected ? 1.02 : 1 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                            style={{ padding: 14, borderRadius: 14, border: selected ? '2px solid var(--orange)' : '1px solid var(--border-light)', background: selected ? 'var(--orange-tint)' : '#fff', textAlign: 'left', cursor: 'pointer' }}
+                          >
                             <div style={{ fontWeight: 700 }}>{vehicle.label}</div>
-                          </button>
+                          </motion.button>
                         )
                       })}
                     </div>
@@ -322,9 +346,33 @@ function BookPageInner() {
                     <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{distanceKm.toFixed(1)} km</span>
                     <span className="fare-number" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: 'var(--orange)' }}>₹{estimatedFare}</span>
                   </div>
-                  <button onClick={findProviders} disabled={!pickup || !dropoff} style={{ width: '100%', height: 52, background: 'var(--orange)', color: '#fff', borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600, cursor: !pickup || !dropoff ? 'not-allowed' : 'pointer', opacity: !pickup || !dropoff ? 0.5 : 1 }}>
-                    Find providers <ArrowRight size={16} style={{ display: 'inline', marginLeft: 6 }} />
-                  </button>
+                  <motion.button
+                    layout
+                    onClick={findProvidersAnimated}
+                    disabled={!pickup || !dropoff || submitting}
+                    className="btn-shimmer"
+                    style={{
+                      width: submitting ? 52 : '100%', height: 52,
+                      borderRadius: submitting ? 26 : 999,
+                      background: 'var(--orange)', color: '#fff',
+                      border: 'none', cursor: !pickup || !dropoff ? 'not-allowed' : 'pointer',
+                      opacity: !pickup || !dropoff ? 0.5 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'Syne', fontWeight: 700, fontSize: 15,
+                      margin: '0 auto'
+                    }}
+                    transition={{ layout: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    {submitting
+                      ? <motion.div
+                          style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff' }}
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
+                        />
+                      : <span>Find providers <ArrowRight size={16} style={{ display: 'inline', marginLeft: 6 }} /></span>
+                    }
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
@@ -377,12 +425,36 @@ function BookPageInner() {
                   Heavy goods
                 </label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg)', borderRadius: 14, padding: '14px 16px' }}>
-                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{jobType}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13, textTransform: 'capitalize' }}>{`${jobType} • ${hours} hr${hours === 1 ? '' : 's'}`}</span>
                   <span className="fare-number" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: 'var(--teal)' }}>₹{estimatedFare}</span>
                 </div>
-                <button onClick={findProviders} disabled={!pickup} style={{ width: '100%', height: 52, background: 'var(--teal)', color: '#fff', borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600, cursor: !pickup ? 'not-allowed' : 'pointer', opacity: !pickup ? 0.5 : 1 }}>
-                  Find providers <ArrowRight size={16} style={{ display: 'inline', marginLeft: 6 }} />
-                </button>
+                <motion.button
+                  layout
+                  onClick={findProvidersAnimated}
+                  disabled={!pickup || submitting}
+                  className="btn-shimmer"
+                  style={{
+                    width: submitting ? 52 : '100%', height: 52,
+                    borderRadius: submitting ? 26 : 999,
+                    background: 'var(--teal)', color: '#fff',
+                    border: 'none', cursor: !pickup ? 'not-allowed' : 'pointer',
+                    opacity: !pickup ? 0.5 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'Syne', fontWeight: 700, fontSize: 15,
+                    margin: '0 auto'
+                  }}
+                  transition={{ layout: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  {submitting
+                    ? <motion.div
+                        style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff' }}
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
+                      />
+                    : <span>Find providers <ArrowRight size={16} style={{ display: 'inline', marginLeft: 6 }} /></span>
+                  }
+                </motion.button>
               </div>
             </motion.div>
           )}
@@ -450,7 +522,7 @@ function BookPageInner() {
                 #{String(booking.bookingId || booking._id).slice(-8).toUpperCase()}
               </div>
               <div style={{ display: 'grid', gap: 10, width: '100%', maxWidth: 300, marginTop: 36 }}>
-                <button onClick={() => router.push(`/bookings/${booking.bookingId || booking._id}`)} style={{ width: '100%', height: 52, background: bookingType === 'hamali' ? 'var(--teal)' : 'var(--orange)', color: '#fff', borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+                <button onClick={() => router.push(`/bookings/${booking._id}/tracking`)} style={{ width: '100%', height: 52, background: bookingType === 'hamali' ? 'var(--teal)' : 'var(--orange)', color: '#fff', borderRadius: 999, border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
                   Track your booking
                 </button>
                 <button onClick={() => router.push('/dashboard')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 8 }}>

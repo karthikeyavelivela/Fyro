@@ -1,13 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import api from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import EarningsChart from '@/components/EarningsChart'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-
-const RupeeCoin3D = dynamic(() => import('@/components/3d/RupeeCoin3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 
 const ACCENT = 'var(--orange)'
 
@@ -68,8 +65,9 @@ export default function DriverEarningsPage() {
         <h1 className="syne" style={{ fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
           Earnings
         </h1>
-        <div style={{ marginLeft: 'auto', width: 90, height: 90, pointerEvents: 'none' }}>
-          <RupeeCoin3D teal={false} />
+        <div style={{ marginLeft: 'auto', borderRadius: 14, padding: '10px 14px', background: 'linear-gradient(135deg, rgba(255,107,43,0.14), rgba(255,107,43,0.04))', border: '1px solid rgba(255,107,43,0.18)' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>All time</div>
+          <div className="syne mono" style={{ fontSize: 20, fontWeight: 800, color: ACCENT }}>Rs.{Number(earnings?.allTime || 0).toLocaleString('en-IN')}</div>
         </div>
       </div>
 

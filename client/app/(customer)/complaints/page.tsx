@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -41,6 +41,7 @@ export default function ComplaintsPage() {
   const [category, setCategory] = useState<string>('damaged_goods')
   const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
+  const hasFetched = useRef(false)
 
   const load = () => {
     setLoading(true)
@@ -55,7 +56,11 @@ export default function ComplaintsPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    if (hasFetched.current) return
+    hasFetched.current = true
+    load()
+  }, [])
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

@@ -1,9 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion, useMotionValue, useTransform, animate, useInView } from 'framer-motion'
 import { ArrowRight, Truck } from 'lucide-react'
 
 import toast from 'react-hot-toast'
@@ -13,6 +12,17 @@ import { socket } from '@/lib/socket'
 import AvailabilityToggle from '@/components/AvailabilityToggle'
 import { fadeUp, stagger, springCard } from '@/lib/motion'
 
+function CountUp({ to, prefix = '' }: { to: number; prefix?: string }) {
+  const count = useMotionValue(0)
+  const rounded = useTransform(count, v => prefix + Math.round(v).toLocaleString('en-IN'))
+  const ref = useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref as any, { once: true })
+  useEffect(() => {
+    if (inView) animate(count, to, { duration: 1.4, ease: 'easeOut' })
+  }, [inView, to, count])
+  return <motion.span ref={ref}>{rounded}</motion.span>
+}
+
 function SectionSkeleton() {
   return <div className="skeleton" style={{ height: 148, borderRadius: 22 }} />
 }
@@ -20,7 +30,7 @@ function SectionSkeleton() {
 export default function DriverHomePage() {
   const [user, setUser] = useState<any>(null)
   const [vehicle, setVehicle] = useState<any>(null)
-  const [earnings, setEarnings] = useState<any>({ today: 0, todayCount: 0, thisWeek: 0 })
+  const [earnings, setEarnings] = useState<any>({ today: 0, todayCount: 0, thisWeek: 0, thisMonth: 0, allTime: 0, tripCount: 0 })
   const [incoming, setIncoming] = useState<any[]>([])
   const [recentTrips, setRecentTrips] = useState<any[]>([])
   const [isAvailable, setIsAvailable] = useState(false)
@@ -55,6 +65,9 @@ export default function DriverHomePage() {
           today: Number(earningsData.today || 0),
           todayCount: Number(earningsData.todayCount || earningsData.todayTrips || 0),
           thisWeek: Number(earningsData.thisWeek || earningsData.week || 0),
+          thisMonth: Number(earningsData.thisMonth || earningsData.month || 0),
+          allTime: Number(earningsData.allTime || earningsData.total || 0),
+          tripCount: Number(earningsData.tripCount || earningsData.totalTrips || 0),
         })
 
         const vehicleData = vehicleRes.status === 'fulfilled'
@@ -106,51 +119,82 @@ export default function DriverHomePage() {
     }
   }
 
-  const todayLabel = useMemo(() => `₹${Number(earnings.today || 0).toLocaleString('en-IN')}`, [earnings.today])
-
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="page-shell compact page-stack">
-      <motion.section variants={fadeUp} custom={0} className="surface-panel panel-pad" style={{ position: 'relative' }}>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', paddingRight: 120 }}>
-          <div>
-            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Driver Workspace</p>
-            <h1 className="font-display" style={{ margin: '8px 0 0', fontSize: '2rem' }}>{user?.name?.split(' ')[0] || 'Driver'}</h1>
-          </div>
-          <AvailabilityToggle isAvailable={isAvailable} onChange={toggleAvailability} loading={availabilityLoading} />
+      {/* Dark earnings hero card */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          background: 'linear-gradient(135deg, #1A1916 0%, #242220 100%)',
+          borderRadius: 20, padding: '28px 28px 24px',
+          border: '1px solid rgba(255,107,43,0.15)',
+          position: 'relative', overflow: 'hidden'
+        }}
+      >
+        <motion.div
+          style={{
+            position: 'absolute', top: -50, right: -50, width: 180, height: 180,
+            borderRadius: '50%', pointerEvents: 'none',
+            background: 'radial-gradient(circle, rgba(255,107,43,0.2) 0%, transparent 70%)'
+          }}
+          animate={{ scale: [1, 1.25, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', fontFamily: 'Outfit', marginBottom: 6 }}>THIS MONTH</div>
+        <div style={{ fontSize: 44, fontWeight: 800, color: '#FF6B2B', fontFamily: 'Syne', lineHeight: 1.05, letterSpacing: '-0.02em' }}>
+          ₹<CountUp to={earnings.thisMonth} />
         </div>
-        {error && <p style={{ margin: '14px 0 0', color: 'var(--red)', fontSize: 14 }}>{error}</p>}
-      </motion.section>
+        <div style={{ color: 'rgba(255,255,255,0.28)', fontFamily: 'Outfit', fontSize: 13, marginTop: 4 }}>
+          Lifetime: ₹{(earnings.allTime || 0).toLocaleString('en-IN')}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          {[
+            { label: 'Today', value: `₹${(earnings.today || 0).toLocaleString('en-IN')}`, orange: false },
+            { label: 'This Week', value: `₹${(earnings.thisWeek || 0).toLocaleString('en-IN')}`, orange: false },
+            { label: 'Trips', value: String(earnings.tripCount || 0), orange: true }
+          ].map((item, i) => (
+            <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.1 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: item.orange ? '#FF6B2B' : 'rgba(255,255,255,0.88)', fontFamily: 'Syne' }}>{item.value}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.32)', fontFamily: 'Outfit', marginTop: 2, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.label}</div>
+            </motion.div>
+          ))}
+        </div>
+        {error && <p style={{ margin: '14px 0 0', color: 'rgba(255,100,100,0.9)', fontSize: 13 }}>{error}</p>}
+      </motion.div>
+
+      {/* Availability toggle */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          background: '#fff', borderRadius: 16, padding: '18px 20px',
+          border: '1px solid rgba(15,14,12,0.07)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16
+        }}
+      >
+        <div>
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>
+            {isAvailable ? '🟢 Online' : '⚫ Offline'}
+          </div>
+          <div style={{ fontFamily: 'Outfit', fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+            {isAvailable ? 'Receiving incoming trips' : 'Go online to receive trips'}
+          </div>
+        </div>
+        <AvailabilityToggle isAvailable={isAvailable} onChange={toggleAvailability} loading={availabilityLoading} />
+      </motion.div>
 
       {loading ? (
         <>
           <SectionSkeleton />
           <SectionSkeleton />
-          <SectionSkeleton />
-          <SectionSkeleton />
         </>
       ) : (
         <>
-          <motion.section variants={fadeUp} custom={1} className="surface-panel panel-pad">
-            <div className="section-head">
-              <h2>Today Stats</h2>
-            </div>
-            <div className="compact-stat-grid">
-              <div className="compact-stat">
-                <strong className="stat-number">{todayLabel}</strong>
-                <span>Earnings</span>
-              </div>
-              <div className="compact-stat">
-                <strong className="stat-number">{earnings.todayCount || 0}</strong>
-                <span>Trips</span>
-              </div>
-              <div className="compact-stat">
-                <strong className="stat-number">₹{Number(earnings.thisWeek || 0).toLocaleString('en-IN')}</strong>
-                <span>This Week</span>
-              </div>
-            </div>
-          </motion.section>
-
+          {/* Vehicle status */}
           <motion.section variants={springCard} className="surface-panel panel-pad">
             <div className="section-head">
               <h2>Vehicle Status</h2>
@@ -160,20 +204,37 @@ export default function DriverHomePage() {
               <div style={{ display: 'grid', gap: 8 }}>
                 <div style={{ fontWeight: 700, fontSize: 18 }}>{vehicle.type?.replace(/_/g, ' ') || 'Registered vehicle'}</div>
                 <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{vehicle.registrationNumber || 'Registration not added yet'}</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{vehicle.isAvailable ? 'Available for trips' : 'Currently offline'}</div>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                  background: vehicle.isAvailable ? 'rgba(22,163,74,0.1)' : 'rgba(15,14,12,0.06)',
+                  color: vehicle.isAvailable ? '#16A34A' : 'var(--text-muted)',
+                  width: 'fit-content'
+                }}>
+                  {vehicle.isAvailable ? 'Available for trips' : 'Currently offline'}
+                </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gap: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: 18 }}>No vehicle added</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>Add your vehicle to start accepting trips.</div>
-                <Link href="/driver/profile" className="muted-link" style={{ color: 'var(--accent)' }}>Go to profile</Link>
-              </div>
+              <Link href="/driver/profile" style={{ textDecoration: 'none', display: 'block' }}>
+                <motion.div
+                  whileHover={{ borderColor: 'rgba(255,107,43,0.5)' }}
+                  style={{
+                    border: '2px dashed rgba(255,107,43,0.35)', borderRadius: 14,
+                    padding: '20px', textAlign: 'center', cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>🚛</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, fontFamily: 'Syne', color: 'var(--text)' }}>Add your vehicle</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Go to profile to add your truck</div>
+                </motion.div>
+              </Link>
             )}
           </motion.section>
 
+          {/* Incoming jobs preview */}
           <motion.section variants={fadeUp} custom={2} className="surface-panel panel-pad">
             <div className="section-head">
-              <h2>Incoming Requests Preview</h2>
+              <h2>Incoming Requests</h2>
               <Link href="/driver/incoming" className="muted-link" style={{ color: 'var(--accent)' }}>See all</Link>
             </div>
             {incoming.length === 0 ? (
@@ -195,6 +256,7 @@ export default function DriverHomePage() {
             )}
           </motion.section>
 
+          {/* Recent trips */}
           <motion.section variants={fadeUp} custom={3} className="surface-panel panel-pad">
             <div className="section-head">
               <h2>Recent Trips</h2>

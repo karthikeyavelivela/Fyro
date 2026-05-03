@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import {
   Users,
   Truck,
@@ -13,6 +14,7 @@ import {
   Activity,
 } from 'lucide-react'
 import api from '@/lib/api'
+import { fadeUp, staggerContainer, ease } from '@/lib/animations'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'PENDING',
@@ -107,8 +109,8 @@ export default function AdminDashboardPage() {
   const rolesTotal = Math.max(1, roles.reduce((a, b) => a + b.value, 0))
 
   return (
-    <>
-      <div className="admin-header">
+    <motion.div variants={staggerContainer} initial="hidden" animate="show">
+      <motion.div variants={fadeUp} className="admin-header">
         <div>
           <h1>Dashboard</h1>
           <div className="sub">{dateStr}</div>
@@ -136,11 +138,17 @@ export default function AdminDashboardPage() {
             ) : null}
           </Link>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="admin-stat-grid">
-        {statCards.map(({ label, value, icon: Icon, color, accent }) => (
-          <div key={label} className="admin-stat">
+      <motion.div variants={staggerContainer} className="admin-stat-grid">
+        {statCards.map(({ label, value, icon: Icon, color, accent }, i) => (
+          <motion.div
+            key={label}
+            className="admin-stat"
+            variants={fadeUp}
+            custom={i}
+            whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(15,14,12,0.1)', transition: { duration: 0.25, ease } }}
+          >
             <div className="admin-stat-top">
               <div className="admin-stat-label">{label}</div>
               <div
@@ -156,9 +164,9 @@ export default function AdminDashboardPage() {
             >
               {value}
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       <div
         style={{
@@ -168,7 +176,7 @@ export default function AdminDashboardPage() {
           marginBottom: 16,
         }}
       >
-        <div className="admin-card">
+        <motion.div variants={fadeUp} className="admin-card">
           <div className="admin-card-head">
             <div className="admin-card-title">Recent bookings</div>
             <Link
@@ -222,9 +230,9 @@ export default function AdminDashboardPage() {
               </tbody>
             </table>
           )}
-        </div>
+        </motion.div>
 
-        <div className="admin-card">
+        <motion.div variants={fadeUp} className="admin-card">
           <div className="admin-card-head">
             <div className="admin-card-title">Users by role</div>
             <Activity size={16} color="var(--text-muted)" />
@@ -255,13 +263,14 @@ export default function AdminDashboardPage() {
                       overflow: 'hidden',
                     }}
                   >
-                    <div
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ delay: 0.4, duration: 0.9, ease }}
                       style={{
-                        width: `${pct}%`,
                         height: '100%',
                         background: r.color,
                         borderRadius: 999,
-                        transition: 'width 0.6s',
                       }}
                     />
                   </div>
@@ -286,10 +295,10 @@ export default function AdminDashboardPage() {
               {stats?.totalUsers?.driver ?? 0} drivers active on the platform
             </span>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      <div className="admin-card">
+      <motion.div variants={fadeUp} className="admin-card">
         <div className="admin-card-head">
           <div className="admin-card-title">Recent activity</div>
         </div>
@@ -349,7 +358,7 @@ export default function AdminDashboardPage() {
             ))}
           </div>
         )}
-      </div>
-    </>
+      </motion.div>
+    </motion.div>
   )
 }

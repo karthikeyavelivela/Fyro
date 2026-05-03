@@ -32,12 +32,19 @@ export default function DriverProfilePage() {
     const load = async () => {
       try {
         const [meRes, vehicleRes] = await Promise.all([
-          api.get('/api/auth/me'),
-          api.get('/api/driver/vehicles/mine')
+          api.get('/api/profile/me'),
+          api.get('/api/vehicles/mine')
         ])
-        setUser(meRes.data.user)
-        setNameValue(meRes.data.user?.name || '')
-        setVehicle(vehicleRes.data.vehicle)
+        const meUser = meRes.data?.user || meRes.data?.data?.user
+        const vehicleData = vehicleRes.data?.vehicle || vehicleRes.data?.data?.vehicle || null
+        setUser(meUser)
+        setNameValue(meUser?.name || '')
+        setVehicle(vehicleData)
+        if (vehicleData) {
+          setVehicleType(vehicleData.type || 'mini_truck')
+          setRegistrationNumber(vehicleData.registrationNumber || '')
+          setCapacityTons(vehicleData.capacityTons?.toString() || '')
+        }
       } catch {
         // handled
       } finally {
@@ -64,15 +71,18 @@ export default function DriverProfilePage() {
     }
     setAddingVehicle(true)
     try {
-      const res = await api.post('/api/driver/vehicles', {
+      const payload = {
         type: vehicleType,
         registrationNumber,
         capacityTons: Number(capacityTons),
-      })
-      setVehicle(res.data.vehicle)
-      toast.success('Vehicle added!')
-    } catch {
-      toast.error('Failed to add vehicle')
+      }
+      const res = vehicle?._id
+        ? await api.put(`/api/vehicles/${vehicle._id}`, payload)
+        : await api.post('/api/vehicles', payload)
+      setVehicle(res.data?.vehicle || res.data?.data?.vehicle)
+      toast.success(vehicle ? 'Vehicle updated' : 'Vehicle added!')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to save vehicle')
     } finally {
       setAddingVehicle(false)
     }
@@ -128,9 +138,11 @@ export default function DriverProfilePage() {
             <Button size="sm" loading={savingName} onClick={async () => {
               setSavingName(true)
               try {
-                await api.put('/api/auth/profile', { name: nameValue })
+                const res = await api.put('/api/profile/me', { name: nameValue })
+                const nextUser = res.data?.user || res.data?.data?.user
                 toast.success('Name updated')
-                setUser((u: any) => ({ ...u, name: nameValue }))
+                setUser(nextUser)
+                setNameValue(nextUser?.name || nameValue)
                 setEditingName(false)
               } catch {
                 toast.error('Failed to update name')

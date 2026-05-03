@@ -2,179 +2,143 @@ const express = require('express')
 const crypto = require('crypto')
 const protect = require('../middleware/auth.js')
 const roleGuard = require('../middleware/roleGuard.js')
+const asyncHandler = require('../utils/asyncHandler')
 const Booking = require('../models/Booking')
 const Payment = require('../models/Payment')
-const logger = require('../utils/logger.js')
 
 const router = express.Router()
 
-// POST /api/payments/create-order
-router.post('/create-order', protect, roleGuard('customer'), async (req, res) => {
-  try {
-    const { bookingId } = req.body
-    if (!bookingId) return res.status(400).json({ success: false, message: 'bookingId required' })
+const getUserId = (req) => String(req.user?.userId || req.user?.id || req.user?._id || '')
+const ok = (res, data = {}, extra = {}, status = 200) => res.status(status).json({ success: true, data, ...extra })
+const fail = (res, message, status = 400, data = {}) => res.status(status).json({ success: false, message, data })
 
-    const booking = await Booking.findOne({ bookingId })
-    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
+router.post('/create-order', protect, roleGuard('customer'), asyncHandler(async (req, res) => {
+  const { bookingId } = req.body || {}
+  if (!bookingId) return fail(res, 'bookingId required', 400)
 
-    if (booking.customerId.toString() !== req.user.userId) {
-      return res.status(403).json({ success: false, message: 'Forbidden' })
-    }
+  const booking = await Booking.findOne({ bookingId })
+  if (!booking) return fail(res, 'Booking not found', 404)
+  if (String(booking.customerId) !== getUserId(req)) return fail(res, 'Forbidden', 403)
+  if (booking.status !== 'completed') return fail(res, 'Booking must be completed before payment', 400)
+  if (booking.paymentStatus === 'paid') return fail(res, 'Booking already paid', 400)
 
-    if (booking.status !== 'completed') {
-      return res.status(400).json({ success: false, message: 'Booking must be completed before payment' })
-    }
+  const amount = Number(booking.finalFare || booking.estimatedFare || 0)
+  const keyId = process.env.RAZORPAY_KEY_ID
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+  const isRealKey = keyId && keySecret && !keyId.startsWith('your_') && !keySecret.startsWith('your_')
+  let orderId = `mock_${Date.now()}`
 
-    if (booking.paymentStatus === 'paid') {
-      return res.status(400).json({ success: false, message: 'Booking already paid' })
-    }
-
-    const amount = booking.finalFare || booking.estimatedFare
-
-    const keyId = process.env.RAZORPAY_KEY_ID
-    const keySecret = process.env.RAZORPAY_KEY_SECRET
-    const isRealKey = keyId && !keyId.startsWith('your_')
-
-    let orderId
-
-    if (isRealKey) {
-      const Razorpay = require('razorpay')
-      const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret })
-      const order = await razorpay.orders.create({
-        amount: Math.round(amount * 100),
-        currency: 'INR',
-        receipt: bookingId
-      })
-      orderId = order.id
-      booking.razorpayOrderId = orderId
-      await booking.save()
-    } else {
-      orderId = 'mock_' + Date.now()
-    }
-
-    return res.json({
-      success: true,
-      orderId,
-      amount,
+  if (isRealKey) {
+    const Razorpay = require('razorpay')
+    const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret })
+    const order = await razorpay.orders.create({
+      amount: Math.round(amount * 100),
       currency: 'INR',
-      key: keyId || 'mock'
+      receipt: bookingId,
     })
-  } catch (err) {
-    logger.error('POST payments/create-order: ' + err.message)
-    return res.status(500).json({ success: false, message: 'Server error' })
-  }
-})
-
-// POST /api/payments/verify
-router.post('/verify', protect, roleGuard('customer'), async (req, res) => {
-  try {
-    const { bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body
-
-    const booking = await Booking.findOne({ bookingId })
-    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
-
-    if (booking.customerId.toString() !== req.user.userId) {
-      return res.status(403).json({ success: false, message: 'Forbidden' })
-    }
-
-    const keySecret = process.env.RAZORPAY_KEY_SECRET
-    const isRealKey = keySecret && !keySecret.startsWith('your_')
-
-    if (isRealKey && razorpaySignature) {
-      const expected = crypto
-        .createHmac('sha256', keySecret)
-        .update(razorpayOrderId + '|' + razorpayPaymentId)
-        .digest('hex')
-
-      if (expected !== razorpaySignature) {
-        return res.status(400).json({ success: false, message: 'Invalid payment signature' })
-      }
-    }
-
-    booking.paymentStatus = 'paid'
-    booking.razorpayOrderId = razorpayOrderId || booking.razorpayOrderId
-    booking.razorpayPaymentId = razorpayPaymentId
-    booking.paidAt = new Date()
+    orderId = order.id
+    booking.razorpayOrderId = orderId
     await booking.save()
+  }
 
-    await Payment.create({
-      bookingId: booking._id,
-      customerId: booking.customerId,
-      providerId: booking.providerId,
-      amount: booking.finalFare || booking.estimatedFare,
-      currency: 'INR',
-      razorpayOrderId: razorpayOrderId || '',
-      razorpayPaymentId: razorpayPaymentId || '',
-      razorpaySignature: razorpaySignature || '',
-      status: 'captured'
-    })
+  return ok(res, { orderId, amount, currency: 'INR', key: keyId || 'mock' }, {
+    orderId,
+    amount,
+    currency: 'INR',
+    key: keyId || 'mock',
+  })
+}))
 
-    const io = req.app.get('io')
-    io.to(`booking:${bookingId}`).emit('payment:confirmed', { bookingId })
-    if (booking.providerId) {
-      io.to(`user:${booking.providerId}`).emit('payment:confirmed', { bookingId })
+router.post('/verify', protect, roleGuard('customer'), asyncHandler(async (req, res) => {
+  const { bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body || {}
+  const booking = await Booking.findOne({ bookingId })
+  if (!booking) return fail(res, 'Booking not found', 404)
+  if (String(booking.customerId) !== getUserId(req)) return fail(res, 'Forbidden', 403)
+
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+  const isRealKey = keySecret && !keySecret.startsWith('your_')
+  if (isRealKey && razorpaySignature) {
+    const expected = crypto
+      .createHmac('sha256', keySecret)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest('hex')
+
+    if (expected !== razorpaySignature) {
+      return fail(res, 'Invalid payment signature', 400)
     }
-
-    return res.json({ success: true })
-  } catch (err) {
-    logger.error('POST payments/verify: ' + err.message)
-    return res.status(500).json({ success: false, message: 'Server error' })
   }
-})
 
-// GET /api/payments/my
-router.get('/my', protect, roleGuard('customer'), async (req, res) => {
-  try {
-    const { page = 1 } = req.query
-    const limit = 10
-    const skip = (parseInt(page) - 1) * limit
+  booking.paymentStatus = 'paid'
+  booking.razorpayOrderId = razorpayOrderId || booking.razorpayOrderId
+  booking.razorpayPaymentId = razorpayPaymentId || booking.razorpayPaymentId
+  booking.paidAt = new Date()
+  await booking.save()
 
-    const [payments, total] = await Promise.all([
-      Payment.find({ customerId: req.user.userId })
-        .populate('bookingId')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      Payment.countDocuments({ customerId: req.user.userId })
-    ])
+  const payment = await Payment.create({
+    bookingId: booking._id,
+    customerId: booking.customerId,
+    providerId: booking.providerId,
+    amount: Number(booking.finalFare || booking.estimatedFare || 0),
+    currency: 'INR',
+    razorpayOrderId: razorpayOrderId || '',
+    razorpayPaymentId: razorpayPaymentId || '',
+    razorpaySignature: razorpaySignature || '',
+    status: 'captured',
+  })
 
-    return res.json({
-      success: true,
-      payments,
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / limit)
-    })
-  } catch (err) {
-    logger.error('GET payments/my: ' + err.message)
-    return res.status(500).json({ success: false, message: 'Server error' })
-  }
-})
+  const io = req.app.get('io')
+  io?.to(`booking:${bookingId}`).emit('payment:confirmed', { bookingId })
+  if (booking.providerId) io?.to(`user:${booking.providerId}`).emit('payment:confirmed', { bookingId })
 
-// GET /api/payments/receipt/:bookingId
-router.get('/receipt/:bookingId', protect, async (req, res) => {
-  try {
-    const booking = await Booking.findOne({ bookingId: req.params.bookingId })
-      .populate('customerId', 'name email phone')
-      .populate('providerId', 'name phone')
-      .populate('vehicleId')
+  return ok(res, { payment }, { payment })
+}))
 
-    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' })
+router.get('/my', protect, asyncHandler(async (req, res) => {
+  const userId = getUserId(req)
+  const page = Math.max(1, Number(req.query.page || 1))
+  const limit = Math.max(1, Number(req.query.limit || 10))
+  const skip = (page - 1) * limit
 
-    const userId = req.user.userId
-    const isCustomer = booking.customerId && booking.customerId._id.toString() === userId
-    const isProvider = booking.providerId && booking.providerId._id.toString() === userId
-    const isAdmin = req.user.role === 'admin'
+  const query = req.user.role === 'customer'
+    ? { customerId: userId }
+    : req.user.role === 'admin'
+      ? {}
+      : { $or: [{ customerId: userId }, { providerId: userId }] }
 
-    if (!isCustomer && !isProvider && !isAdmin) {
-      return res.status(403).json({ success: false, message: 'Forbidden' })
-    }
+  const [payments, total] = await Promise.all([
+    Payment.find(query)
+      .populate('bookingId')
+      .populate('customerId', 'name phone email')
+      .populate('providerId', 'name phone email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Payment.countDocuments(query),
+  ])
 
-    return res.json({ success: true, receipt: booking })
-  } catch (err) {
-    logger.error('GET payments/receipt/:bookingId: ' + err.message)
-    return res.status(500).json({ success: false, message: 'Server error' })
-  }
-})
+  return ok(res, { payments, total, page, pages: Math.ceil(total / limit) }, {
+    payments,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  })
+}))
+
+router.get('/receipt/:bookingId', protect, asyncHandler(async (req, res) => {
+  const booking = await Booking.findOne({ bookingId: req.params.bookingId })
+    .populate('customerId', 'name email phone')
+    .populate('providerId', 'name phone')
+    .populate('vehicleId')
+
+  if (!booking) return fail(res, 'Booking not found', 404)
+
+  const userId = getUserId(req)
+  const isCustomer = String(booking.customerId?._id || booking.customerId) === userId
+  const isProvider = String(booking.providerId?._id || booking.providerId || '') === userId
+  const isAdmin = req.user.role === 'admin'
+
+  if (!isCustomer && !isProvider && !isAdmin) return fail(res, 'Forbidden', 403)
+  return ok(res, { receipt: booking }, { receipt: booking })
+}))
 
 module.exports = router

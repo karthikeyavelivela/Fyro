@@ -1,10 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-
-const CreditCard3D = dynamic(() => import('@/components/3d/CreditCard3D'), { ssr: false, loading: () => <div style={{ width: '100%', height: '100%' }} /> })
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Skeleton from '@/components/ui/Skeleton'
@@ -36,8 +33,11 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('All')
   const [summary, setSummary] = useState({ totalSpent: 0, totalTrips: 0 })
+  const hasFetched = useRef(false)
 
   useEffect(() => {
+    if (hasFetched.current) return
+    hasFetched.current = true
     const fetchPayments = async () => {
       setLoading(true)
       try {
@@ -79,10 +79,39 @@ export default function PaymentsPage() {
           Transactions, invoices, and wallet balance
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 4px' }}>
-          <div style={{ width: 220, height: 150 }}>
-            <CreditCard3D />
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, fontFamily: 'var(--font-body, Outfit)' }}>
+          <motion.div
+            style={{
+              width: 280, height: 160, borderRadius: 18,
+              background: 'linear-gradient(135deg, #1A1916 0%, #2d2a26 50%, #1A1916 100%)',
+              border: '1px solid rgba(255,107,43,0.25)',
+              padding: '22px 24px', position: 'relative', overflow: 'hidden',
+              cursor: 'default', flexShrink: 0
+            }}
+            animate={{ rotateY: [0, 4, 0, -4, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            whileHover={{ rotateY: 10, rotateX: -4, scale: 1.03, transition: { duration: 0.4 } }}
+          >
+            <motion.div
+              style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                background: 'linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.05) 50%, transparent 65%)',
+                backgroundSize: '200% 100%'
+              }}
+              animate={{ backgroundPosition: ['-200% 0', '400% 0'] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'linear', repeatDelay: 2 }}
+            />
+            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: '#FF6B2B', letterSpacing: '-0.01em' }}>FYRO</div>
+            <div style={{ width: 32, height: 24, borderRadius: 5, background: 'linear-gradient(135deg, #C9952A, #F0C96E)', marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2, padding: 3 }}>
+              {[0, 1, 2, 3].map(i => <div key={i} style={{ background: 'rgba(0,0,0,0.18)', borderRadius: 2 }} />)}
+            </div>
+            <div style={{ display: 'flex', gap: 16, marginTop: 16, alignItems: 'center' }}>
+              {['••••', '••••', '••••', '8421'].map((g, i) => (
+                <span key={i} style={{ fontFamily: 'Outfit', fontSize: i === 3 ? 13 : 11, color: i === 3 ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.35)', letterSpacing: '0.12em' }}>{g}</span>
+              ))}
+            </div>
+            <div style={{ position: 'absolute', bottom: 14, right: 16, fontSize: 8, color: 'rgba(255,255,255,0.25)', fontFamily: 'Outfit', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Secured by Razorpay</div>
+          </motion.div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 10, fontFamily: 'var(--font-body, Outfit)' }}>
             Secure payments powered by Razorpay
           </p>
         </div>

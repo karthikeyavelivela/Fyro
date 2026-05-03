@@ -39,13 +39,14 @@ export default function HamaliProfilePage() {
     const load = async () => {
       try {
         const [meRes, profileRes] = await Promise.all([
-          api.get('/api/auth/me'),
+          api.get('/api/profile/me'),
           api.get('/api/hamali/profile/mine')
         ])
-        setUser(meRes.data.user)
-        setNameValue(meRes.data.user?.name || '')
+        const meUser = meRes.data?.user || meRes.data?.data?.user
+        setUser(meUser)
+        setNameValue(meUser?.name || '')
         
-        const p = profileRes.data.data || profileRes.data.profile
+        const p = profileRes.data.profile || profileRes.data.data?.profile || profileRes.data.data
         setProfile(p)
         if (p) {
           setTeamSize(p.teamSize || 1)
@@ -93,7 +94,11 @@ export default function HamaliProfilePage() {
         city,
         area
       })
-      setProfile(res.data.data || res.data.profile)
+      setProfile(res.data.profile || res.data.data?.profile || res.data.data)
+      const meRes = await api.get('/api/profile/me')
+      const meUser = meRes.data?.user || meRes.data?.data?.user
+      setUser(meUser)
+      setNameValue(meUser?.name || '')
       toast.success('Profile updated successfully')
     } catch (err) {
       toast.error('Failed to update profile')
@@ -155,8 +160,11 @@ export default function HamaliProfilePage() {
               onClick={async () => {
                 setSavingName(true)
                 try {
+                  const res = await api.put('/api/profile/me', { name: nameValue })
+                  const nextUser = res.data?.user || res.data?.data?.user
+                  setUser(nextUser)
+                  setNameValue(nextUser?.name || nameValue)
                   toast.success('Name updated')
-                  setUser((u: any) => ({ ...u, name: nameValue }))
                   setEditingName(false)
                 } finally {
                   setSavingName(false)

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Outfit, Syne } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
+import { SmoothScroll } from '@/components/SmoothScroll';
 import './globals.css';
 
 const outfit = Outfit({ 
@@ -28,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} ${syne.variable}`}>
       <body className="antialiased">
-        {children}
+        <SmoothScroll>{children}</SmoothScroll>
         <Toaster 
           position="top-center"
           toastOptions={{

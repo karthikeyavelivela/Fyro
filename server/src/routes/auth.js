@@ -4,7 +4,6 @@ const { body, validationResult } = require('express-validator')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const User = require('../models/User.js')
-const Vehicle = require('../models/Vehicle.js')
 const HamaliProfile = require('../models/HamaliProfile.js')
 const protect = require('../middleware/auth.js')
 const logger = require('../utils/logger.js')
@@ -83,14 +82,6 @@ router.post('/register', authLimiter, [
       role,
       language: language || 'en'
     })
-
-    if (role === 'driver') {
-      await Vehicle.create({
-        driverId: user._id,
-        isAvailable: false,
-        currentLocation: { type: 'Point', coordinates: [80.6480, 16.5062] }
-      })
-    }
 
     if (role === 'hamali') {
       await HamaliProfile.create({

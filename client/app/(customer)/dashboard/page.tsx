@@ -166,17 +166,24 @@ export default function DashboardPage() {
 
       {/* Quick actions */}
       <motion.div variants={fadeUp} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-        {quickActions.map(qa => (
+        {quickActions.map((qa, index) => (
           <Link key={qa.label} href={qa.path} style={{ textDecoration: 'none' }}>
-            <div style={{
-              background: '#fff', borderRadius: 16, padding: '16px 8px',
-              border: '1px solid var(--border)', display: 'flex',
-              flexDirection: 'column', alignItems: 'center', gap: 10, cursor: 'pointer',
-              boxShadow: 'var(--shadow-sm)', transition: 'transform 0.2s'
-            }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 + index * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ scale: 1.05, borderColor: 'rgba(255,107,43,0.35)', boxShadow: '0 8px 24px rgba(255,107,43,0.12)' }}
+              whileTap={{ scale: 0.96 }}
+              style={{
+                background: '#fff', borderRadius: 16, padding: '16px 8px',
+                border: '1px solid var(--border)', display: 'flex',
+                flexDirection: 'column', alignItems: 'center', gap: 10, cursor: 'pointer',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
               <qa.icon size={20} color="var(--orange)" />
               <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{qa.label}</span>
-            </div>
+            </motion.div>
           </Link>
         ))}
       </motion.div>
@@ -227,8 +234,22 @@ export default function DashboardPage() {
         {loading ? (
           [1, 2, 3].map(i => <Skeleton key={i} height={72} style={{ borderRadius: 16 }} />)
         ) : recentBookings.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)', fontSize: 14, background: '#fff', borderRadius: 16, border: '1px dashed var(--border-light)' }}>
-            No recent trips yet
+          <div style={{ textAlign: 'center', padding: '32px 16px', background: '#fff', borderRadius: 16, border: '1px dashed var(--border-light)' }}>
+            <div style={{ position: 'relative', height: 48, overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'repeating-linear-gradient(90deg, var(--divider) 0, var(--divider) 8px, transparent 8px, transparent 16px)' }} />
+              <div className="truck-drive" style={{ display: 'inline-block', position: 'absolute', bottom: 2 }}>
+                <svg width="40" height="26" viewBox="0 0 40 26" fill="none">
+                  <rect x="2" y="8" width="24" height="12" rx="2" fill="var(--orange)" opacity="0.8" />
+                  <rect x="24" y="11" width="12" height="9" rx="2" fill="var(--orange)" />
+                  <rect x="26" y="12" width="8" height="5" rx="1" fill="rgba(255,255,255,0.3)" />
+                  <circle cx="9" cy="22" r="3.5" fill="#1A1916" stroke="var(--orange)" strokeWidth="1.5" />
+                  <circle cx="22" cy="22" r="3.5" fill="#1A1916" stroke="var(--orange)" strokeWidth="1.5" />
+                  <circle cx="31" cy="22" r="3.5" fill="#1A1916" stroke="var(--orange)" strokeWidth="1.5" />
+                </svg>
+              </div>
+            </div>
+            <p style={{ fontFamily: 'Syne', fontWeight: 600, color: 'var(--text)', marginBottom: 4, margin: '0 0 4px' }}>No trips yet</p>
+            <p style={{ fontFamily: 'Outfit', fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Book your first trip to get started</p>
           </div>
         ) : (
           recentBookings.map(b => {
