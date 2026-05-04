@@ -30,23 +30,21 @@ export default function BookingsPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
-  const hasFetched = useRef(false)
-
   useEffect(() => {
-    if (hasFetched.current) return
-    hasFetched.current = true
     let cancelled = false
     setPage(1)
-    
+    setBookings([])
+
     const load = async () => {
       setLoading(true)
       try {
         const params: any = { limit: 10, page: 1 }
         const statuses = STATUS_MAP[filter]
         if (statuses.length === 1) params.status = statuses[0]
+        if (statuses.length > 1) params.status = statuses
         const { data } = await api.get('/api/bookings/my', { params })
         if (cancelled) return
-        
+
         const list = toArray<any>(
           data?.bookings ?? data?.data?.bookings ?? data?.data ?? data
         )
@@ -58,12 +56,10 @@ export default function BookingsPage() {
         if (!cancelled) setLoading(false)
       }
     }
-    
+
     load()
-    
-    return () => {
-      cancelled = true
-    }
+
+    return () => { cancelled = true }
   }, [filter])
 
   const displayed = search

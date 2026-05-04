@@ -342,15 +342,14 @@ export default function HamaliProfilePage() {
 
       {/* Logout */}
       <motion.div variants={fadeUp}>
-        <Button
-          variant="danger"
-          className="w-full"
-          loading={loggingOut}
+        <button
+          className="logout-btn"
+          disabled={loggingOut}
           onClick={handleLogout}
         >
-          <LogOut size={18} className="mr-2" />
-          Logout
-        </Button>
+          <LogOut size={15} />
+          {loggingOut ? 'Logging out...' : 'Log out'}
+        </button>
       </motion.div>
     </motion.div>
   )

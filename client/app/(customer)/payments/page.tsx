@@ -33,11 +33,7 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('All')
   const [summary, setSummary] = useState({ totalSpent: 0, totalTrips: 0 })
-  const hasFetched = useRef(false)
-
   useEffect(() => {
-    if (hasFetched.current) return
-    hasFetched.current = true
     const fetchPayments = async () => {
       setLoading(true)
       try {

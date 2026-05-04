@@ -68,7 +68,7 @@ export default function HamaliEarningsPage() {
         <h1 className="font-syne font-800 text-2xl" style={{ color: 'var(--text)' }}>Earnings</h1>
         <div style={{ marginLeft: 'auto', borderRadius: 14, padding: '10px 14px', background: 'linear-gradient(135deg, rgba(13,148,136,0.14), rgba(13,148,136,0.04))', border: '1px solid rgba(13,148,136,0.18)' }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>All time</div>
-          <div className="font-syne font-800" style={{ fontSize: 20, color: teal }}>Rs.{Number(earnings?.allTime || 0).toLocaleString('en-IN')}</div>
+          <div className="font-syne font-800" style={{ fontSize: 20, color: teal }}>₹{Number(earnings?.allTime || 0).toLocaleString('en-IN')}</div>
         </div>
       </motion.div>
 

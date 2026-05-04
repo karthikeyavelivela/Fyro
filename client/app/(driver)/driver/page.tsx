@@ -19,6 +19,13 @@ function CountUp({ to }: { to: number }) {
   return <motion.span ref={ref}>{rounded}</motion.span>
 }
 
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
 export default function DriverHomePage() {
   const [user, setUser] = useState<any>(null)
   const [vehicle, setVehicle] = useState<any>(null)
@@ -28,6 +35,7 @@ export default function DriverHomePage() {
   const [isOnline, setIsOnline] = useState(false)
   const [availabilityLoading, setAvailabilityLoading] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const hasFetched = useRef(false)
 
   useEffect(() => {
@@ -79,6 +87,8 @@ export default function DriverHomePage() {
             : []
           ).slice(0, 4)
         )
+      } catch {
+        if (mounted) setError(true)
       } finally {
         if (mounted) setLoading(false)
       }
@@ -110,6 +120,16 @@ export default function DriverHomePage() {
 
   return (
     <div className="fyro-page">
+
+      {/* Greeting */}
+      <div className="fade-up fade-up-1" style={{ marginBottom: 16 }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-muted)', margin: '0 0 2px' }}>
+          {getGreeting()},
+        </p>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(22px,4vw,30px)', color: 'var(--text)', letterSpacing: '-0.025em', margin: 0 }}>
+          {user?.name?.split(' ')[0] || (loading ? '' : 'Driver')}
+        </h1>
+      </div>
 
       {/* Dark earnings hero */}
       <div className="fyro-card-dark fade-up fade-up-1" style={{
@@ -154,7 +174,7 @@ export default function DriverHomePage() {
         <div>
           <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: isOnline ? '#16A34A' : 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
             {isOnline && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16A34A', display: 'inline-block', animation: 'pulseDot 2s ease infinite' }} />}
-            {isOnline ? 'Online' : 'Offline'}
+            Availability
           </p>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>
             {isOnline ? 'Receiving incoming jobs' : 'Toggle to start receiving jobs'}
@@ -210,7 +230,11 @@ export default function DriverHomePage() {
           <Link href="/driver/incoming" style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, color: 'var(--orange)', textDecoration: 'none' }}>See all →</Link>
         </div>
         {loading ? (
-          <div className="skeleton" style={{ height: 80 }} />
+          <div className="skel" style={{ height: 80, borderRadius: 14 }} />
+        ) : error ? (
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, fontFamily: 'var(--font-body)' }}>
+            Could not load data. Pull to refresh.
+          </div>
         ) : incoming.length === 0 ? (
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, fontFamily: 'var(--font-body)' }}>
             {isOnline ? 'No incoming jobs right now' : 'Go online to receive jobs'}

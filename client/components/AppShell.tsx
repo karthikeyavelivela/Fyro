@@ -88,7 +88,7 @@ export default function AppShell({ children, role }: Props) {
     : role[0].toUpperCase()
 
   return (
-    <div className="fyro-shell">
+    <div className={`fyro-shell${role === 'admin' ? ' admin-layout' : ''}`}>
 
       {/* DESKTOP SIDEBAR */}
       <aside className="fyro-sidebar">

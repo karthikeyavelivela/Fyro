@@ -269,7 +269,7 @@ function BookPageInner() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <div style={{ maxWidth: 520, margin: '0 auto' }}>
+      <div className="booking-grid" style={{ maxWidth: 1024, margin: '0 auto', padding: '16px' }}>
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="s1" {...slideProps} style={{ padding: '16px 20px' }}>
@@ -305,20 +305,22 @@ function BookPageInner() {
 
           {step === 2 && bookingType === 'transport' && (
             <motion.div key="transport" {...slideProps}>
-              <div style={{ height: '42vh' }}>
-                <LiveTrackingMap pickup={pickup || undefined} dropoff={dropoff || undefined} />
+              <div className="booking-map-sticky">
+                <div className="booking-map-wrapper" style={{ height: '42vh' }}>
+                  <LiveTrackingMap pickup={pickup || undefined} dropoff={dropoff || undefined} />
+                </div>
               </div>
               <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', marginTop: -20, padding: '20px 20px 32px', position: 'relative', zIndex: 2 }}>
                 <div style={{ width: 36, height: 4, borderRadius: 999, background: 'rgba(0,0,0,0.12)', margin: '0 auto 16px' }} />
                 <div style={{ display: 'grid', gap: 14 }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>Pickup</label>
-                    <input value={pickupInput} onChange={(e) => { setPickupInput(e.target.value); debouncedLookup(e.target.value, setPickupSuggestions, pickupTimer) }} style={inputStyle} placeholder={pickupLoading ? 'Detecting your location...' : 'Enter pickup address'} />
+                    <input className="fyro-input" value={pickupInput} onChange={(e) => { setPickupInput(e.target.value); debouncedLookup(e.target.value, setPickupSuggestions, pickupTimer) }} placeholder={pickupLoading ? 'Detecting your location...' : 'Enter pickup address'} />
                     {suggestionsList(pickupSuggestions, 'pickup')}
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>Dropoff</label>
-                    <input value={dropoffInput} onChange={(e) => { setDropoffInput(e.target.value); debouncedLookup(e.target.value, setDropoffSuggestions, dropoffTimer) }} style={inputStyle} placeholder="Enter dropoff address" />
+                    <input className="fyro-input" value={dropoffInput} onChange={(e) => { setDropoffInput(e.target.value); debouncedLookup(e.target.value, setDropoffSuggestions, dropoffTimer) }} placeholder="Enter dropoff address" />
                     {suggestionsList(dropoffSuggestions, 'dropoff')}
                   </div>
                   <div>
@@ -350,11 +352,10 @@ function BookPageInner() {
                     layout
                     onClick={findProvidersAnimated}
                     disabled={!pickup || !dropoff || submitting}
-                    className="btn-shimmer"
+                    className="btn btn-orange"
                     style={{
                       width: submitting ? 52 : '100%', height: 52,
                       borderRadius: submitting ? 26 : 999,
-                      background: 'var(--orange)', color: '#fff',
                       border: 'none', cursor: !pickup || !dropoff ? 'not-allowed' : 'pointer',
                       opacity: !pickup || !dropoff ? 0.5 : 1,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -389,7 +390,7 @@ function BookPageInner() {
               <div style={{ display: 'grid', gap: 16 }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>Work location</label>
-                  <input value={workAddress} onChange={(e) => { setWorkAddress(e.target.value); debouncedLookup(e.target.value, setWorkSuggestions, workTimer) }} style={inputStyle} placeholder="Enter address" />
+                  <input className="fyro-input" value={workAddress} onChange={(e) => { setWorkAddress(e.target.value); debouncedLookup(e.target.value, setWorkSuggestions, workTimer) }} placeholder="Enter address" />
                   {suggestionsList(workSuggestions, 'work')}
                 </div>
                 <div>
@@ -432,11 +433,10 @@ function BookPageInner() {
                   layout
                   onClick={findProvidersAnimated}
                   disabled={!pickup || submitting}
-                  className="btn-shimmer"
+                  className="btn btn-teal"
                   style={{
                     width: submitting ? 52 : '100%', height: 52,
                     borderRadius: submitting ? 26 : 999,
-                    background: 'var(--teal)', color: '#fff',
                     border: 'none', cursor: !pickup ? 'not-allowed' : 'pointer',
                     opacity: !pickup ? 0.5 : 1,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -18,6 +18,7 @@ export default function DriverIncomingPage() {
   const router = useRouter()
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const hasFetched = useRef(false)
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function DriverIncomingPage() {
         if (!mounted) return
         mergeBookings(ensureArray<any>(res.data?.bookings ?? res.data?.data?.bookings ?? res.data?.data ?? res.data))
       } catch {
-        // handled by interceptor
+        if (mounted) setError(true)
       } finally {
         if (mounted) setLoading(false)
       }
@@ -103,11 +104,24 @@ export default function DriverIncomingPage() {
       </div>
 
       <div style={{ padding: '16px 16px 40px', maxWidth: 560, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {loading ? (
+        {loading && (
           <>
-            {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 200, borderRadius: 20 }} />)}
+            {[1, 2, 3].map((i) => <div key={i} className="skel" style={{ height: 200, borderRadius: 20 }} />)}
           </>
-        ) : bookings.length === 0 ? (
+        )}
+        
+        {!loading && error && (
+          <div style={{
+            background: 'var(--surface)', borderRadius: 14,
+            border: '1px solid var(--border)', padding: '24px 20px', textAlign: 'center'
+          }}>
+            <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: 13, color: 'var(--muted)', margin: 0 }}>
+              Could not load data. Pull to refresh.
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && bookings.length === 0 ? (
           <div style={{ padding: '32px 20px', background: '#fff', borderRadius: 20, textAlign: 'center', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ width: 160, height: 200 }}>
               <TrafficLight3D />

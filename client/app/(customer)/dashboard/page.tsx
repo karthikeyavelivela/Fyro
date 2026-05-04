@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [activeBooking, setActiveBooking] = useState<any>(null)
   const [recentTrips, setRecentTrips] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const hasFetched = useRef(false)
 
   useEffect(() => {
@@ -43,7 +44,10 @@ export default function DashboardPage() {
         setActiveBooking(toArr<any>(activeRes.data?.bookings ?? activeRes.data?.data?.bookings)[0] || null)
         setRecentTrips(toArr<any>(recentRes.data?.bookings ?? recentRes.data?.data?.bookings))
       } catch {
-        if (!cancelled) toast.error('Failed to load dashboard')
+        if (!cancelled) {
+          toast.error('Failed to load dashboard')
+          setError(true)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -58,7 +62,7 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const userName = user?.name?.split(' ')[0] || 'there'
+  const userName = user?.name?.split(' ')[0] || user?.name || (loading ? '' : 'there')
 
   return (
     <div className="fyro-page" style={{
@@ -216,7 +220,7 @@ export default function DashboardPage() {
             { Icon: Gift, label: 'Refer', href: '/profile' },
           ] as const).map(({ Icon, label, href }) => (
             <Link key={label} href={href} style={{ textDecoration: 'none' }}>
-              <div style={{
+              <div className="quick-action-card" style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
                 padding: '14px 6px', borderRadius: 14,
                 background: 'var(--surface)', border: '1px solid var(--border)',
@@ -240,14 +244,27 @@ export default function DashboardPage() {
       <div className="fade-up fade-up-4">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-display)', margin: 0 }}>Recent trips</h2>
-          <Link href="/bookings" style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 2, textDecoration: 'none' }}>
-            See all <ChevronRight size={14} />
-          </Link>
+          {recentTrips && recentTrips.length > 0 && (
+            <Link href="/bookings" style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 2, textDecoration: 'none' }}>
+              See all <ChevronRight size={14} />
+            </Link>
+          )}
         </div>
 
-        {loading && [1, 2].map(i => (
-          <div key={i} className="skeleton" style={{ height: 68, marginBottom: 10 }} />
+        {loading && [1, 2, 3].map(i => (
+          <div key={i} className="skel" style={{ height: 68, marginBottom: 10 }} />
         ))}
+
+        {!loading && error && (
+          <div style={{
+            background: 'var(--surface)', borderRadius: 14,
+            border: '1px solid var(--border)', padding: '24px 20px', textAlign: 'center'
+          }}>
+            <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: 13, color: 'var(--muted)', margin: 0 }}>
+              Could not load data. Pull to refresh.
+            </p>
+          </div>
+        )}
 
         {!loading && recentTrips.length === 0 && (
           <div style={{

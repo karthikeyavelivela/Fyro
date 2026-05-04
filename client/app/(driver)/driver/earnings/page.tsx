@@ -67,7 +67,7 @@ export default function DriverEarningsPage() {
         </h1>
         <div style={{ marginLeft: 'auto', borderRadius: 14, padding: '10px 14px', background: 'linear-gradient(135deg, rgba(255,107,43,0.14), rgba(255,107,43,0.04))', border: '1px solid rgba(255,107,43,0.18)' }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>All time</div>
-          <div className="syne mono" style={{ fontSize: 20, fontWeight: 800, color: ACCENT }}>Rs.{Number(earnings?.allTime || 0).toLocaleString('en-IN')}</div>
+          <div className="syne mono" style={{ fontSize: 20, fontWeight: 800, color: ACCENT }}>₹{Number(earnings?.allTime || 0).toLocaleString('en-IN')}</div>
         </div>
       </div>
 

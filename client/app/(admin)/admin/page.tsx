@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
     },
     {
       label: 'Revenue today',
-      value: `Rs. ${(stats?.revenueToday ?? 0).toLocaleString('en-IN')}`,
+      value: `₹${(stats?.revenueToday ?? 0).toLocaleString('en-IN')}`,
       icon: IndianRupee,
       color: 'var(--green)',
       accent: true,

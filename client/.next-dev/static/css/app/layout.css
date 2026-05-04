@@ -1991,12 +1991,193 @@ input, select, textarea {
   }
 }
 
+/* ── ADMIN SIDEBAR ── dark for privileged context */
+.admin-layout .fyro-sidebar,
+.fyro-sidebar.admin-sidebar {
+  background: #1A1916 !important;
+  border-right-color: rgba(255,255,255,0.06) !important;
+}
+.admin-layout .fyro-nav-link {
+  color: rgba(255,255,255,0.55);
+}
+.admin-layout .fyro-nav-link:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.9);
+}
+.admin-layout .fyro-nav-link.active-orange {
+  background: rgba(255,107,43,0.15);
+  color: #FF6B2B;
+}
+.admin-layout .fyro-sidebar-logo {
+  color: #fff;
+  border-bottom-color: rgba(255,255,255,0.06);
+}
+.admin-layout .fyro-user-name { color: rgba(255,255,255,0.85); }
+.admin-layout .fyro-user-email { color: rgba(255,255,255,0.4); }
+.admin-layout .fyro-sidebar-footer { border-top-color: rgba(255,255,255,0.08); }
+.admin-layout .fyro-logout-btn {
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.65);
+}
+.admin-layout .fyro-logout-btn:hover {
+  background: rgba(220,38,38,0.18);
+  color: #FCA5A5;
+}
+
+/* ── ADMIN STAT GRID ── 2×2 KPI cards */
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media (max-width: 640px) {
+  .admin-stat-grid { grid-template-columns: 1fr; }
+}
+
+/* ── FILTER PILLS / ADMIN CHIPS ── */
+.filter-pill,
+.admin-chip {
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.16,1,0.3,1);
+  white-space: nowrap;
+}
+.filter-pill:hover,
+.admin-chip:hover {
+  border-color: rgba(255,107,43,0.3);
+  color: var(--text);
+}
+.filter-pill.active,
+.admin-chip.active {
+  background: var(--orange);
+  color: #fff;
+  border-color: var(--orange);
+  box-shadow: 0 4px 12px rgba(255,107,43,0.25);
+}
+.filter-pill.active-teal,
+.admin-chip.active-teal {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+  box-shadow: 0 4px 12px rgba(13,148,136,0.25);
+}
+
+/* ── LEAFLET MAP ── rounded corners */
+.leaflet-container {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+.booking-map-wrapper {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(15,14,12,0.09);
+  background: #e8e4dc;
+}
+
+/* ── QUICK ACTION CARDS ── */
+.quick-action-card {
+  transition: transform 220ms cubic-bezier(0.16,1,0.3,1),
+              box-shadow 220ms cubic-bezier(0.16,1,0.3,1),
+              border-color 220ms cubic-bezier(0.16,1,0.3,1);
+  cursor: pointer;
+}
+.quick-action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(15,14,12,0.1);
+  border-color: rgba(255,107,43,0.2) !important;
+}
+
+/* ── LOGOUT BUTTON (page-level) ── neutral */
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: all 200ms cubic-bezier(0.16,1,0.3,1);
+}
+.logout-btn:hover {
+  background: rgba(220,38,38,0.06);
+  border-color: rgba(220,38,38,0.2);
+  color: #DC2626;
+}
+
+/* ── BOOKING DESKTOP 2-COL ── */
+.booking-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 1024px) {
+  .booking-map-sticky {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+/* ── ADD VEHICLE DASHED CARD ── */
+.add-vehicle-card {
+  border: 2px dashed rgba(255,107,43,0.3);
+  border-radius: 16px;
+  background: rgba(255,107,43,0.03);
+  transition: all 220ms cubic-bezier(0.16,1,0.3,1);
+  cursor: pointer;
+}
+.add-vehicle-card:hover {
+  border-color: rgba(255,107,43,0.55);
+  background: rgba(255,107,43,0.06);
+}
+
+/* ── AVAILABILITY CARD STATES ── */
+.availability-online {
+  background: rgba(22,163,74,0.06) !important;
+  border: 1px solid rgba(22,163,74,0.2) !important;
+}
+.availability-offline {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ── SKELETON LOADER ── */
+.skel {
+  background: linear-gradient(90deg, #e8e4dc 25%, #f0ece4 50%, #e8e4dc 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 10px;
+}
+
+/* ── HAMALI COMPLETE PROFILE CARD ── teal accent */
+.hamali-complete-card {
+  background: rgba(13,148,136,0.07) !important;
+  border: 1px solid rgba(13,148,136,0.18) !important;
+}
+.hamali-complete-card .complete-title { color: #0A7A6F !important; }
+.hamali-complete-card .complete-sub   { color: #0D8079 !important; }
+.hamali-complete-card .complete-bar   { background: var(--teal) !important; }
 @media (min-width: 768px){
 
   .md\:h-72{
     height: 18rem;
   }
 }
+
 
 /*!*********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
   !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[2].use[1]!./node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[13].oneOf[2].use[2]!./node_modules/next/font/google/target.css?{"path":"app\\layout.tsx","import":"Outfit","arguments":[{"subsets":["latin"],"weight":["300","400","500","600"],"variable":"--font-outfit"}],"variableName":"outfit"} ***!
